@@ -189,7 +189,9 @@ func (server *Server) handleRequest(req request) {
 			return
 
 		} else if len(user.io) != 1 {
-			fmt.Println("error: join request from a user with more than a socket")
+			req.userIO.send <- Message{
+				Error: AlreadySignedIn,
+			}
 
 			return
 
@@ -275,6 +277,61 @@ func (server *Server) handleRequest(req request) {
 
 		req.userIO.send <- Message{
 			CreateGameResponse: &CreateGameResponse{GameID: g.GameID},
+		}
+
+	} else if req.message.JoinGame != nil {
+		user := req.userIO.user
+
+		if user.Token == "" {
+			req.userIO.send <- Message{
+				Error: UnknownToken,
+			}
+
+			return
+		}
+
+		game, ok := server.games[req.message.JoinGame.GameID]
+
+		if !ok {
+			req.userIO.send <- Message{
+				Error: UnknownGame,
+			}
+
+			return
+		}
+
+		for _, player := range user.joinedGames {
+			if player.Game.GameID == game.GameID {
+				req.userIO.send <- Message{
+					Error: AlreadyPlaying,
+				}
+
+				return
+			}
+		}
+
+		player, err := game.AddPlayer(req.userIO)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		user.joinedGames = append(user.joinedGames, player)
+
+		for _, bplayer := range game.Players {
+			if bplayer == player {
+				continue
+			}
+
+			bplayer.UserIO.send <- Message{
+				NotifyNewPlayer: &NotifyNewPlayer{
+					Name: user.Name,
+				},
+			}
 		}
 	}
 }

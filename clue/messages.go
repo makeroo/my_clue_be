@@ -8,6 +8,8 @@ const (
 	TokenMismatch         = "token_mismatch"
 	UnknownToken          = "unknown_token"
 	TooManyGames          = "too_many_games"
+	UnknownGame           = "unknown_game"
+	AlreadyPlaying        = "already_playing"
 )
 
 // Message is a frame going from fe to be or vicersa.
@@ -30,6 +32,7 @@ type Message struct {
 	} `json:"join_game,omitempty"`
 
 	NotifyUserState *NotifyUserState `json:"notify_user_online,omitempty"`
+	NotifyNewPlayer *NotifyNewPlayer `json:"notify_new_player,omitempty"`
 
 	Error string `json:"error,omitempty"`
 }
@@ -55,22 +58,11 @@ type NotifyUserState struct {
 	Online    bool   `json:"online"`
 }
 
-/* TODO type NotifyNameChange struct {
-
-}*/
+type NotifyNewPlayer struct {
+	Name string `json:"name"`
+}
 
 /*
-type JoinGameRequest struct {
-	GameID string `json:"game_id"`
-	Name   string `json:"name"`
-}
-
-type JoinGameResponse struct {
-	PlayerToken string `json:"token"`
-}
-
-// type CreateGameRequest empty
-
 
 type SelectCharacterRequest struct {
 	Character int    `json:"character"`
