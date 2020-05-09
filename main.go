@@ -23,6 +23,7 @@ func main() {
 		},
 	}
 
+	// BUG: note UnixNano does not work either in playground or in my box
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	server := clue.NewServer(&upgrader, seededRand)
