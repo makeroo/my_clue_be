@@ -10,6 +10,12 @@ const (
 	TooManyGames          = "too_many_games"
 	UnknownGame           = "unknown_game"
 	AlreadyPlaying        = "already_playing"
+	AlreadySelected       = "already_selected"
+	NotACharacter         = "not_a_character"
+	NotPlaying            = "not_playing"
+	//CannotChangeCharacter = "cannot_change_character"
+	GameAlreadyStarted   = "game_already_started"
+	CharacterNotSelected = "character_not_selected"
 )
 
 // Message is a frame going from fe to be or vicersa.
@@ -31,8 +37,25 @@ type Message struct {
 		GameID string `json:"game_id"`
 	} `json:"join_game,omitempty"`
 
-	NotifyUserState *NotifyUserState `json:"notify_user_online,omitempty"`
-	NotifyNewPlayer *NotifyNewPlayer `json:"notify_new_player,omitempty"`
+	SelectCharacter *struct {
+		Character int `json:"character"`
+	} `json:"select_char,omitempty"`
+
+	VoteStart *struct {
+		Vote bool `json:"vote"`
+	} `json:"vote_start,omitempty"`
+
+	RollDices *struct {
+		// empty
+	} `json:"roll_dices,omitempty"`
+
+	RollDicesResponse *RollDicesResonse `json:"roll_dices_response,omitempty"`
+
+	NotifyUserState *NotifyUserState `json:"notify_user_state,omitempty"`
+
+	NotifyGameStarted *NotifyGameStarted `json:"notify_game_started,omitempty"`
+
+	NotifyGameState *NotifyGameState `json:"notify_game_state,omitempty"`
 
 	Error string `json:"error,omitempty"`
 }
@@ -45,40 +68,45 @@ type SignInResponse struct {
 type GameSynopsis struct {
 	GameID    string `json:"game_id"`
 	Character int    `json:"character"`
+	PlayerID  int    `json:"player_id"`
 }
 
 type CreateGameResponse struct {
 	GameID string `json:"game_id"`
 }
 
+type RollDicesResonse struct {
+	Dice1 int `json:"dice1"`
+	Dice2 int `json:"dice2"`
+}
+
+/*
+NotifyUserState communicate weather a user is reachable, online is true, or not,
+and if she/he changed name or selected a character.
+The message is sent to all users playing a game with her/him.
+A user is identified by PlayerID.
+Name can't be used because is user choosen an not guaranteed to be unique.
+Character is unique only when game is started, otherwise is not defined,
+ie. it is 0 for all players that haven't selected a character yet.
+PlayerID is unique only in a game.
+*/
 type NotifyUserState struct {
-	OldName   string `json:"old_name"`
-	NewName   string `json:"new_name"`
+	PlayerID  int    `json:"player_id"`
+	Name      string `json:"name"`
 	Character int    `json:"character"`
 	Online    bool   `json:"online"`
 }
 
-type NotifyNewPlayer struct {
-	Name string `json:"name"`
+type NotifyGameStarted struct {
+	Deck         []Card `json:"deck"`
+	PlayersOrder []int  `json:"players_order"`
 }
 
-/*
-
-type SelectCharacterRequest struct {
-	Character int    `json:"character"`
-	Name      string `json:"name"`
+type NotifyGameState struct {
+	State         State `json:"state"`
+	CurrentPlayer int   `json:"current_player"`
 }
 
-type SelectCharacterResponse struct {
-	PlayerToken  string `json:"player_token,omitempty"`
-	AlreadyTaken bool   `json:"already_taken"`
-}
-
-type NotifyNewPlayer struct {
-	Character int    `json:"character"`
-	Name      string `json:"name"`
-}
-*/
 /*
 welcome page
 

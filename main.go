@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/makeroo/my_clue_be/clue"
 )
 
@@ -13,7 +16,16 @@ func main() {
 
 	flag.Parse()
 
-	server := clue.NewServer()
+	upgrader := websocket.Upgrader{
+		// TODO: debug code, remove checkorigin
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	server := clue.NewServer(&upgrader, seededRand)
 
 	server.Run()
 

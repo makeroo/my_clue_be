@@ -1,24 +1,21 @@
 package utils
 
 import (
-  "math/rand"
-  "time"
+	"math/rand"
 )
 
 const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+func StringWithCharset(lrand *rand.Rand, length int, charset string) string {
+	b := make([]byte, length)
 
-func StringWithCharset(length int, charset string) string {
-  b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
 
-  for i := range b {
-    b[i] = charset[seededRand.Intn(len(charset))]
-  }
-
-  return string(b)
+	return string(b)
 }
 
-func String(length int) string {
-  return StringWithCharset(length, charset)
+func String(rand *rand.Rand, length int) string {
+	return StringWithCharset(rand, length, charset)
 }

@@ -2,6 +2,7 @@ package clue
 
 import (
 	"errors"
+	"math/rand"
 )
 
 // State is the state of the Game FSM
@@ -62,21 +63,45 @@ const (
 	Wrenck
 )
 
+var initialPositions = map[Card][2]int{
+	MissScarlett: {7, 24},
+	RevGreen:     {14, 0},
+	ColMustard:   {0, 17},
+	ProfPlum:     {23, 19},
+	MrsPeacock:   {23, 7},
+	MrsWhite:     {9, 0},
+}
+
 // Player collects all playing user data.
 // A user can play multiple games simultaneously.
 type Player struct {
 	Game      *Game
+	PlayerID  int
 	Character int
-	Deck      []Card
+
+	VoteStart bool
+
+	Deck []Card
+
+	// A player can either be in a room or somewhere in the hallways.
+	// When in a room EnteredRoom holds the room card the player is in.
+	// Otherwise EnteredRoom is -1 and MapX/Y point to the map cell.
+	EnteredRoom int
+	MapX        int
+	MapY        int
 
 	UserIO *UserIO
 }
 
 // Game is a clue table. A user can join multiple tables.
 type Game struct {
-	GameID   string
-	Players  []*Player
-	solution []Card
+	GameID  string
+	Players map[int]*Player
+	rand    *rand.Rand
+
+	solutionRoom      Card
+	solutionWeapon    Card
+	solutionCharacter Card
 
 	state          State
 	currentPlayer  int
@@ -101,16 +126,13 @@ func IsCharacter(card Card) bool {
 }
 
 // NewGame create a Game instance.
-func NewGame(gameID string) *Game {
+func NewGame(gameID string, rand *rand.Rand) *Game {
 	game := Game{
-		GameID:         gameID,
-		Players:        nil,
-		solution:       nil,
-		state:          GameStateStarting,
-		currentPlayer:  0,
-		dice1:          0,
-		dice2:          0,
-		remainingSteps: 0,
+		GameID:  gameID,
+		Players: make(map[int]*Player),
+		rand:    rand,
+
+		state: GameStateStarting,
 	}
 
 	return &game
@@ -126,15 +148,136 @@ func (game *Game) AddPlayer(userIO *UserIO) (*Player, error) {
 	}
 
 	player := &Player{
-		Game:   game,
-		UserIO: userIO,
+		Game:     game,
+		UserIO:   userIO,
+		PlayerID: len(game.Players) + 1,
 	}
 
-	game.Players = append(game.Players, player)
+	game.Players[player.PlayerID] = player
 
 	return player, nil
 }
 
-//func (game *Game) SelectCharacter(playerToken string, character int) {
-//
-//}
+func (game *Game) Start() {
+	game.shufflePlayers()
+
+	game.state = GameStateNewTurn
+	game.currentPlayer = 0
+
+	// create secret
+
+	game.solutionCharacter = game.randomCard(MissScarlett, MrsWhite)
+	game.solutionRoom = game.randomCard(Kitchen, Study)
+	game.solutionWeapon = game.randomCard(Candlestick, Wrenck)
+
+	deck := game.makeDeck()
+
+	game.rand.Shuffle(len(deck), func(i, j int) {
+		deck[i], deck[j] = deck[j], deck[i]
+	})
+
+	cardsPerPlayer := len(deck) / len(game.Players)
+	playersWithAnExtraCard := len(deck) % len(game.Players)
+	start := 0
+
+	for i, player := range game.Players {
+		cards := cardsPerPlayer
+
+		if i < playersWithAnExtraCard {
+			cards++
+		}
+
+		player.Deck = deck[start : start+cards]
+		start += cards
+	}
+
+	for _, player := range game.Players {
+		player.EnteredRoom = -1
+
+		pos := initialPositions[Card(player.Character)]
+
+		player.MapX, player.MapY = pos[0], pos[1]
+	}
+}
+
+func (game *Game) shufflePlayers() {
+	game.rand.Shuffle(len(game.Players), func(i, j int) {
+		game.Players[i], game.Players[j] = game.Players[j], game.Players[i]
+	})
+}
+
+func (game *Game) randomCard(min Card, max Card) Card {
+	n := game.rand.Intn(int(max)-int(min)) + int(min)
+
+	return Card(n)
+}
+
+func (game *Game) makeDeck() []Card {
+	deck := make([]Card, int(Wrenck))
+
+	for i := range deck {
+		deck[i] = Card(i)
+	}
+
+	return deck
+}
+
+/*func (game *Game) randomPlayerID() int {
+	for {
+		x := utils.RandomInt()
+
+		if game.Players[x] == nil {
+			return x
+		}
+	}
+}*/
+
+func (game *Game) SelectCharacter(player *Player, character int) (bool, error) {
+	if game.state != GameStateStarting {
+		return false, errors.New(GameAlreadyStarted)
+	}
+
+	if !IsCharacter(Card(character)) {
+		return false, errors.New(NotACharacter)
+	}
+
+	if player.Character == character {
+		return false, nil
+	}
+
+	for _, cplayer := range game.Players {
+		if cplayer.Character == character {
+			return false, errors.New(AlreadySelected)
+		}
+	}
+
+	player.Character = character
+
+	return true, nil
+}
+
+func (game *Game) VoteStart(player *Player, vote bool) (bool, error) {
+	if game.state != GameStateStarting {
+		return false, errors.New(GameAlreadyStarted)
+	}
+
+	if !IsCharacter(Card(player.Character)) {
+		return false, errors.New(CharacterNotSelected)
+	}
+
+	if player.VoteStart == vote {
+		return false, nil
+	}
+
+	player.VoteStart = vote
+
+	if vote && len(game.Players) > 2 { // TODO: support 2 player version
+		for _, p := range game.Players {
+			if !p.VoteStart {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
+}
