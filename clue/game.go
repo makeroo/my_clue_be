@@ -96,7 +96,7 @@ type Player struct {
 // Game is a clue table. A user can join multiple tables.
 type Game struct {
 	GameID  string
-	Players map[int]*Player
+	Players []*Player
 	rand    *rand.Rand
 
 	solutionRoom      Card
@@ -128,9 +128,8 @@ func IsCharacter(card Card) bool {
 // NewGame create a Game instance.
 func NewGame(gameID string, rand *rand.Rand) *Game {
 	game := Game{
-		GameID:  gameID,
-		Players: make(map[int]*Player),
-		rand:    rand,
+		GameID: gameID,
+		rand:   rand,
 
 		state: GameStateStarting,
 	}
@@ -153,7 +152,7 @@ func (game *Game) AddPlayer(userIO *UserIO) (*Player, error) {
 		PlayerID: len(game.Players) + 1,
 	}
 
-	game.Players[player.PlayerID] = player
+	game.Players = append(game.Players, player)
 
 	return player, nil
 }
@@ -170,7 +169,7 @@ func (game *Game) Start() {
 	game.solutionRoom = game.randomCard(Kitchen, Study)
 	game.solutionWeapon = game.randomCard(Candlestick, Wrenck)
 
-	deck := game.makeDeck()
+	deck := game.makeDeckWithoutSolution()
 
 	game.rand.Shuffle(len(deck), func(i, j int) {
 		deck[i], deck[j] = deck[j], deck[i]
@@ -212,25 +211,24 @@ func (game *Game) randomCard(min Card, max Card) Card {
 	return Card(n)
 }
 
-func (game *Game) makeDeck() []Card {
-	deck := make([]Card, int(Wrenck))
+func (game *Game) makeDeckWithoutSolution() []Card {
+	deck := make([]Card, int(Wrenck)-2)
 
-	for i := range deck {
-		deck[i] = Card(i)
+	p := 0
+
+	for i := 0; i <= int(Wrenck); i++ {
+		c := Card(i)
+
+		if c == game.solutionCharacter || c == game.solutionRoom || c == game.solutionWeapon {
+			continue
+		}
+
+		deck[p] = Card(i)
+		p++
 	}
 
 	return deck
 }
-
-/*func (game *Game) randomPlayerID() int {
-	for {
-		x := utils.RandomInt()
-
-		if game.Players[x] == nil {
-			return x
-		}
-	}
-}*/
 
 func (game *Game) SelectCharacter(player *Player, character int) (bool, error) {
 	if game.state != GameStateStarting {
@@ -271,11 +269,13 @@ func (game *Game) VoteStart(player *Player, vote bool) (bool, error) {
 
 	player.VoteStart = vote
 
-	if vote && len(game.Players) > 2 { // TODO: support 2 player version
-		for _, p := range game.Players {
-			if !p.VoteStart {
-				return false, nil
-			}
+	if !vote || len(game.Players) < 3 { // TODO: support 2 player version
+		return false, nil
+	}
+
+	for _, p := range game.Players {
+		if !p.VoteStart {
+			return false, nil
 		}
 	}
 
