@@ -403,7 +403,30 @@ func (server *Server) handleRequest(req request) {
 			},
 		}
 
-		server.notifyPlayers(game, nil, func(player *Player) Message {
+		players := make([]NotifyUserState, len(game.Players))
+
+		for i, player := range game.Players {
+			userState := NotifyUserState{
+				PlayerID:  player.PlayerID,
+				Character: player.Character,
+				Online:    player.UserIO != nil,
+			}
+
+			if player.UserIO != nil {
+				// FIXME: when a user is offline I don't know her/his name
+				userState.Name = player.UserIO.user.Name
+			}
+
+			players[i] = userState
+		}
+
+		req.userIO.send <- Message{
+			JoinGameResponse: &JoinGameResponse{
+				Players: players,
+			},
+		}
+
+		server.notifyPlayers(game, req.userIO.player, func(player *Player) Message {
 			return message
 		})
 
@@ -479,7 +502,7 @@ func (server *Server) handleRequest(req request) {
 		newTurn := Message{
 			NotifyGameState: &NotifyGameState{
 				State:         game.state,
-				CurrentPlayer: game.currentPlayer,
+				CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
 			},
 		}
 
@@ -488,6 +511,225 @@ func (server *Server) handleRequest(req request) {
 		})
 
 	} else if req.message.RollDices != nil {
+		game, err := server.checkCurrentPlayer(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		if err := game.RollDices(); err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		message := Message{
+			NotifyGameState: &NotifyGameState{
+				State:         game.state,
+				CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
+				Dice1:         game.dice1,
+				Dice2:         game.dice2,
+			},
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
+
+	} else if req.message.Move != nil {
+		game, err := server.checkStartedGame(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		if err := game.Move(req.message.Move.EnterRoom, req.message.Move.MapX, req.message.Move.MapY); err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		message := Message{
+			NotifyGameState: &NotifyGameState{
+				State:         game.state,
+				CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
+
+				Room: req.userIO.player.Room,
+				MapX: req.userIO.player.MapX,
+				MapY: req.userIO.player.MapY,
+			},
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
+
+	} else if req.message.QuerySolution != nil {
+		game, err := server.checkCurrentPlayer(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		if err := game.QuerySolution(req.message.QuerySolution.Character, req.message.QuerySolution.Room, req.message.QuerySolution.Weapon); err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+		}
+
+		message := Message{
+			NotifyGameState: &NotifyGameState{
+				State:           game.state,
+				AnsweringPlayer: game.Players[game.queryingPlayer].PlayerID,
+				Character:       game.queryCharacter,
+				Room:            game.queryRoom,
+				Weapon:          game.queryWeapon,
+			},
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
+
+	} else if req.message.Reveal != nil {
+		game, err := server.checkStartedGame(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		if req.userIO.player.PlayerID != game.queryingPlayer {
+			req.userIO.send <- Message{
+				Error: NotYourTurn,
+			}
+
+			return
+		}
+
+		matched, err := game.ProcessReveal(req.message.Reveal.card)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		var message Message
+
+		if game.state == GameStateTrySolution {
+			message = Message{
+				NotifyGameState: &NotifyGameState{
+					State:   game.state,
+					Matched: matched,
+				},
+			}
+		} else {
+			message = Message{
+				NotifyGameState: &NotifyGameState{
+					State:           game.state,
+					AnsweringPlayer: game.Players[game.queryingPlayer].PlayerID,
+					Character:       game.queryCharacter,
+					Room:            game.queryRoom,
+					Weapon:          game.queryWeapon,
+				},
+			}
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
+
+	} else if req.message.Pass != nil {
+		game, err := server.checkCurrentPlayer(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		err = game.Pass()
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		message := Message{
+			NotifyGameState: &NotifyGameState{
+				State:         game.state,
+				CurrentPlayer: game.currentPlayer,
+			},
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
+
+	} else if req.message.DeclareSolution != nil {
+		game, err := server.checkCurrentPlayer(req)
+
+		if err != nil {
+			req.userIO.send <- Message{
+				Error: err.Error(),
+			}
+
+			return
+		}
+
+		err = game.CheckSolution(req.message.DeclareSolution.Character, req.message.DeclareSolution.Room, req.message.DeclareSolution.Weapon)
+
+		var message Message
+
+		if game.state == GameEnded {
+			message = Message{
+				NotifyGameState: &NotifyGameState{
+					State: game.state,
+				},
+			}
+
+		} else {
+			message = Message{
+				NotifyGameState: &NotifyGameState{
+					State:         game.state,
+					CurrentPlayer: game.currentPlayer,
+					Character:     req.message.DeclareSolution.Character,
+					Room:          req.message.DeclareSolution.Room,
+					Weapon:        req.message.DeclareSolution.Weapon,
+				},
+			}
+		}
+
+		server.notifyPlayers(game, nil, func(player *Player) Message {
+			return message
+		})
 	}
 }
 
@@ -503,6 +745,20 @@ func (server *Server) checkStartedGame(req request) (*Game, error) {
 	}
 
 	game := req.userIO.player.Game
+
+	return game, nil
+}
+
+func (server *Server) checkCurrentPlayer(req request) (*Game, error) {
+	game, err := server.checkStartedGame(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !game.IsCurrentPlayer(req.userIO.player) {
+		return nil, errors.New(NotYourTurn)
+	}
 
 	return game, nil
 }

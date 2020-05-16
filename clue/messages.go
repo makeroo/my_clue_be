@@ -16,6 +16,11 @@ const (
 	//CannotChangeCharacter = "cannot_change_character"
 	GameAlreadyStarted   = "game_already_started"
 	CharacterNotSelected = "character_not_selected"
+	NotYourTurn          = "not_your_turn"
+	IllegalState         = "illegal_state"
+	IllegalMove          = "illegal_move"
+	NotYourCard          = "not_your_card"
+	MustShowACard        = "must_show_a_card"
 )
 
 // Message is a frame going from fe to be or vicersa.
@@ -37,6 +42,8 @@ type Message struct {
 		GameID string `json:"game_id"`
 	} `json:"join_game,omitempty"`
 
+	JoinGameResponse *JoinGameResponse `json:"join_game_resp,omitempty"`
+
 	SelectCharacter *struct {
 		Character int `json:"character"`
 	} `json:"select_char,omitempty"`
@@ -49,7 +56,31 @@ type Message struct {
 		// empty
 	} `json:"roll_dices,omitempty"`
 
-	RollDicesResponse *RollDicesResonse `json:"roll_dices_response,omitempty"`
+	Move *struct {
+		EnterRoom Card `json:"enter_room"`
+		MapX      int  `json:"map_x"`
+		MapY      int  `json:"map_y"`
+	} `json:"move,omitempty"`
+
+	QuerySolution *struct {
+		Character Card `json:"character"`
+		Room      Card `json:"room"`
+		Weapon    Card `json:"weapon"`
+	} `json:"query_solution,omitempty"`
+
+	Reveal *struct {
+		card Card `json:"card,omitempty"`
+	} `json:"reveal,omitempty"`
+
+	DeclareSolution *struct {
+		Character Card `json:"character"`
+		Room      Card `json:"room"`
+		Weapon    Card `json:"weapon"`
+	} `json:"declare_solution,omitempty"`
+
+	Pass *struct {
+		// empty
+	} `json:"pass,omitempty"`
 
 	NotifyUserState *NotifyUserState `json:"notify_user_state,omitempty"`
 
@@ -75,9 +106,8 @@ type CreateGameResponse struct {
 	GameID string `json:"game_id"`
 }
 
-type RollDicesResonse struct {
-	Dice1 int `json:"dice1"`
-	Dice2 int `json:"dice2"`
+type JoinGameResponse struct {
+	Players []NotifyUserState `json:"players"`
 }
 
 /*
@@ -92,8 +122,8 @@ PlayerID is unique only in a game.
 */
 type NotifyUserState struct {
 	PlayerID  int    `json:"player_id"`
-	Name      string `json:"name"`
-	Character int    `json:"character"`
+	Name      string `json:"name,omitempty"`
+	Character int    `json:"character,omitempty"`
 	Online    bool   `json:"online"`
 }
 
@@ -105,6 +135,19 @@ type NotifyGameStarted struct {
 type NotifyGameState struct {
 	State         State `json:"state"`
 	CurrentPlayer int   `json:"current_player"`
+
+	Dice1 int `json:"dice1,omitempty"`
+	Dice2 int `json:"dice2,omitempty"`
+
+	Room Card `json:"room,omitempty"`
+	MapX int  `json:"map_x,omitempty"`
+	MapY int  `json:"map_y,omitempty"`
+
+	AnsweringPlayer int  `json:"answering_player,omitempty"`
+	Character       Card `json:"character,omitempty"`
+	//Room Card
+	Weapon  Card `json:"weapon,omitempty"`
+	Matched bool `json:"matched,omitempty"`
 }
 
 /*
