@@ -1,6 +1,41 @@
 package clue
 
 const (
+	MessageSignInRequest  = "sign_in"
+	MessageSignInResponse = "sign_in_response"
+
+	MessageCreateGameRequest  = "create_game"
+	MessageCreateGameResponse = "create_game_resp"
+
+	MessageJoinGameRequest  = "join_game"
+	MessageJoinGameResponse = "join_game_resp"
+
+	MessageSelectCharRequest = "select_char"
+
+	MessageVoteStartRequest = "vote_start"
+
+	MessageRollDicesRequest = "roll_dices"
+
+	MessageMoveRequest = "move"
+
+	MessageQuerySolutionRequest = "query_solution"
+
+	MessageRevealRequest = "reveal"
+
+	MessageDeclareSolutionRequest = "declare_solution"
+
+	MessagePassRequest = "pass"
+
+	MessageNotifyUserState = "notify_user_state"
+
+	MessageNotifyGameStarted = "notify_game_started"
+
+	MessageNotifyGameState = "notify_game_state"
+
+	MessageError = "error"
+)
+
+const (
 	NotSignedIn           = "not_signed_in"
 	AlreadySignedIn       = "already_signed_in"
 	CannotJoinRunningGame = "cannot_join_running_game"
@@ -23,72 +58,9 @@ const (
 	MustShowACard        = "must_show_a_card"
 )
 
-// Message is a frame going from fe to be or vicersa.
-type Message struct {
-	SignIn *struct {
-		Name  string `json:"name"`
-		Token string `json:"token"`
-	} `json:"sign_in,omitempty"`
-
-	SignInResponse *SignInResponse `json:"sign_in_response,omitempty"`
-
-	CreateGame *struct {
-		// empty
-	} `json:"create_game,omitempty"`
-
-	CreateGameResponse *CreateGameResponse `json:"create_game_resp,omitempty"`
-
-	JoinGame *struct {
-		GameID string `json:"game_id"`
-	} `json:"join_game,omitempty"`
-
-	JoinGameResponse *JoinGameResponse `json:"join_game_resp,omitempty"`
-
-	SelectCharacter *struct {
-		Character int `json:"character"`
-	} `json:"select_char,omitempty"`
-
-	VoteStart *struct {
-		Vote bool `json:"vote"`
-	} `json:"vote_start,omitempty"`
-
-	RollDices *struct {
-		// empty
-	} `json:"roll_dices,omitempty"`
-
-	Move *struct {
-		EnterRoom Card `json:"enter_room"`
-		MapX      int  `json:"map_x"`
-		MapY      int  `json:"map_y"`
-	} `json:"move,omitempty"`
-
-	QuerySolution *struct {
-		Character Card `json:"character"`
-		Room      Card `json:"room"`
-		Weapon    Card `json:"weapon"`
-	} `json:"query_solution,omitempty"`
-
-	Reveal *struct {
-		card Card `json:"card,omitempty"`
-	} `json:"reveal,omitempty"`
-
-	DeclareSolution *struct {
-		Character Card `json:"character"`
-		Room      Card `json:"room"`
-		Weapon    Card `json:"weapon"`
-	} `json:"declare_solution,omitempty"`
-
-	Pass *struct {
-		// empty
-	} `json:"pass,omitempty"`
-
-	NotifyUserState *NotifyUserState `json:"notify_user_state,omitempty"`
-
-	NotifyGameStarted *NotifyGameStarted `json:"notify_game_started,omitempty"`
-
-	NotifyGameState *NotifyGameState `json:"notify_game_state,omitempty"`
-
-	Error string `json:"error,omitempty"`
+type SignInRequest struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
 }
 
 type SignInResponse struct {
@@ -102,12 +74,73 @@ type GameSynopsis struct {
 	PlayerID  int    `json:"player_id"`
 }
 
+type CreateGameRequest struct {
+	// empty
+}
+
 type CreateGameResponse struct {
+	GameID string `json:"game_id"`
+}
+
+type JoinGameRequest struct {
 	GameID string `json:"game_id"`
 }
 
 type JoinGameResponse struct {
 	Players []NotifyUserState `json:"players"`
+}
+
+type SelectCharacterRequest struct {
+	Character int `json:"character"`
+}
+
+type VoteStartRequest struct {
+	Vote bool `json:"vote"`
+}
+
+type RollDicesRequest struct {
+	// empty
+}
+
+type MoveRequest struct {
+	EnterRoom Card `json:"enter_room"`
+	MapX      int  `json:"map_x"`
+	MapY      int  `json:"map_y"`
+}
+
+type QuerySolutionRequest struct {
+	Character Card `json:"character"`
+	Room      Card `json:"room"`
+	Weapon    Card `json:"weapon"`
+}
+
+type RevealRequest struct {
+	Card Card `json:"card,omitempty"`
+}
+
+type DeclareSolutionRequest struct {
+	Character Card `json:"character"`
+	Room      Card `json:"room"`
+	Weapon    Card `json:"weapon"`
+}
+
+type PassRequest struct {
+	// empty
+}
+
+// Message is a frame going from fe to be or vicersa.
+type MessageFrame struct {
+	Header MessageHeader
+	Body   interface{}
+}
+
+type MessageHeader struct {
+	Type string `json:"type"`
+	//	Error string `json:"error,omitempty"`
+}
+
+type NotifyError struct {
+	Error string `json:"error"`
 }
 
 /*
@@ -149,52 +182,3 @@ type NotifyGameState struct {
 	Weapon  Card `json:"weapon,omitempty"`
 	Matched bool `json:"matched,omitempty"`
 }
-
-/*
-welcome page
-
-    join a game
-        text field: enter game id
-        send req: join(gameId) -> game
-
-    create a game
-        send req: create() -> game
-
-game:
-    starting
-        selectChar(char, name) -> charId / alreadyTaken
-
-        -> notifyChar(char, name)
-
-        voteStart()
-
-        -> notifyStart(name)
-
-    turn(char)
-
-        -> startTurn
-
-        rollDices()
-
-        -> notifyDices(dices)
-
-        (LATER card)
-
-        selectAction(still, secretPassage, move)
-
-        move(cell)
-
-        -> notifyMove()
-
-        (if in room)
-
-        ask( (implicit room), char, weap)
-
-        -> notifyAsk(room, char, weap, aswer:bool)
-
-        answer( room or char or weap )
-
-        -> notifyAnswer( room or char or weap )
-        -> notifyBlindAnswer
-
-*/
