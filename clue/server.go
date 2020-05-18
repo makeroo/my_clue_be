@@ -118,7 +118,7 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 			},
 			MessageCreateGameRequest: {
 				BodyReader: nil,
-				Handler:    HandleSignInRequest,
+				Handler:    HandleCreateGameRequest,
 			},
 			MessageJoinGameRequest: {
 				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
