@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleJoinGameRequest processes join game requests.
 func HandleJoinGameRequest(server *Server, req Request) {
 	joinGame, ok := req.Body.(*JoinGameRequest)
 

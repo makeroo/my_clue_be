@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleVoteStartRequest processes vote start requests.
 func HandleVoteStartRequest(server *Server, req Request) {
 	voteStart, ok := req.Body.(*VoteStartRequest)
 

@@ -5,6 +5,7 @@ import (
 	"log"
 )
 
+// HandleSignInRequest processes sign in requests.
 func HandleSignInRequest(server *Server, req Request) {
 	signIn, ok := req.Body.(*SignInRequest)
 

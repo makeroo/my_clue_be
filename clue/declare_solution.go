@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleDeclareSolutionRequest processes declare solution requests.
 func HandleDeclareSolutionRequest(server *Server, req Request) {
 	declareSolution, ok := req.Body.(*DeclareSolutionRequest)
 

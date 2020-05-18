@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleSelectCharacterRequest processes select char requests.
 func HandleSelectCharacterRequest(server *Server, req Request) {
 	selectCharacter, ok := req.Body.(*SelectCharacterRequest)
 

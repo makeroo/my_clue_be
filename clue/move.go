@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleMoveRequest processes move requests.
 func HandleMoveRequest(server *Server, req Request) {
 	move, ok := req.Body.(*MoveRequest)
 

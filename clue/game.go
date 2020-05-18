@@ -19,15 +19,16 @@ const (
 	// and card have to be drawed from the "hints" deck
 	// TODO: actually this is a composite state depending on card instructions
 	GameStateCard
-	// GameStateAction is the state entered when dice have rolled, eventually
+	// GameStateMove is the state entered when dice have rolled, eventually
 	// the hints card have been obeyed and the player have to choose what to do.
 	GameStateMove
 	// GameStateQuery is the state entered when the player completed her/his
 	// move and, if in a room, query a solution.
 	GameStateQuery
-
+	// GameStateTrySolution is the state entered when the player can declare
+	// the solution or pass.
 	GameStateTrySolution
-
+	// GameEnded is the state entered when someone find out what the solution is.
 	GameEnded
 )
 
@@ -37,35 +38,53 @@ const (
 type Card int
 
 const (
+	// Candlestick is the candlestick card
 	Candlestick Card = iota + 1
+	// Knife is the knife card
 	Knife
+	// LeadPipe is the lead pipe card
 	LeadPipe
+	// Revolver is the revolver card
 	Revolver
+	// Rope is the rope card
 	Rope
+	// Wrenck is the wrenck card
 	Wrenck
 
-	// Kitchen is the kitchen room
+	// Kitchen is the kitchen card
 	Kitchen
-	// Ballroom is the ballroom
+	// Ballroom is the ballroom card
 	Ballroom
-	// Conservatory is the conservatory room, the greenhouse in the ITA version.
+	// Conservatory is the conservatory card, the greenhouse in the ITA version.
 	Conservatory
-	// DiningRoom is the dining room.
+	// DiningRoom is the dining room card
 	DiningRoom
+	// BilliardRoom is the billiard card
 	BilliardRoom
+	// Library is the library card
 	Library
+	// Lounge is the lounge card
 	Lounge
+	// Hall is an hall card
 	Hall
+	// Study is the study card
 	Study
 
+	// MissScarlett is the Miss Scarlett card
 	MissScarlett
+	// RevGreen is the Rev. Green card
 	RevGreen
+	// ColMustard is the Col. Mustard card
 	ColMustard
+	// ProfPlum is the Prof. Plum card
 	ProfPlum
+	// MrsPeacock is the Mrs. Peacock card
 	MrsPeacock
+	// MrsWhite is the Mrs. White card
 	MrsWhite // ITA: Orchid
 )
 
+// Cards is the number of cards in the room+weapon+char deck.
 const Cards = int(MrsWhite)
 
 var initialPositions = map[Card][2]int{
@@ -139,8 +158,11 @@ type Player struct {
 	MapX int
 	MapY int
 
+	// UserIO is defined if the user is connected, nil otherwise.
 	UserIO *UserIO
 
+	// FailedSolution is false until the player declared a solution
+	// that is wrong.
 	FailedSolution bool
 }
 
@@ -167,25 +189,28 @@ type Game struct {
 	secretPassages [][2]Card
 }
 
-// IsRoom return true if the given card is a room.
+// IsRoom returns true if the given card is a room.
 func IsRoom(card Card) bool {
 	return !IsWeapon(card) && !IsCharacter(card)
 }
 
-// IsWeapon return true if the given card is a weapon.
+// IsWeapon returns true if the given card is a weapon.
 func IsWeapon(card Card) bool {
 	return 0 < card && card < Kitchen
 }
 
-// IsCharacter return true if the given card is a character.
+// IsCharacter returns true if the given card is a character.
 func IsCharacter(card Card) bool {
 	return card > Study
 }
 
+// IsCard returns true if the card is valid.
+// Used when casting from int (json).
 func IsCard(card Card) bool {
 	return card >= Candlestick && card <= MrsWhite
 }
 
+// HasCard checks if the player has the card in her/his deck.
 func (player *Player) HasCard(card Card) bool {
 	for _, c := range player.Deck {
 		if c == card {
@@ -215,6 +240,7 @@ func NewGame(gameID string, rand *rand.Rand) *Game {
 	return &game
 }
 
+// AddPlayer adds a player to the table.
 func (game *Game) AddPlayer(userIO *UserIO) (*Player, error) {
 	if game.state != GameStateStarting {
 		return nil, errors.New(CannotJoinRunningGame)
@@ -235,6 +261,7 @@ func (game *Game) AddPlayer(userIO *UserIO) (*Player, error) {
 	return player, nil
 }
 
+// Start starts a new game.
 func (game *Game) Start() {
 	game.shufflePlayers()
 
@@ -308,6 +335,7 @@ func (game *Game) makeDeckWithoutSolution() []Card {
 	return deck
 }
 
+// SelectCharacter assigns a character to a player.
 func (game *Game) SelectCharacter(player *Player, character int) (bool, error) {
 	if game.state != GameStateStarting {
 		return false, errors.New(GameAlreadyStarted)
@@ -332,6 +360,7 @@ func (game *Game) SelectCharacter(player *Player, character int) (bool, error) {
 	return true, nil
 }
 
+// VoteStart records the start vote of a player.
 func (game *Game) VoteStart(player *Player, vote bool) (bool, error) {
 	if game.state != GameStateStarting {
 		return false, errors.New(GameAlreadyStarted)
@@ -360,10 +389,12 @@ func (game *Game) VoteStart(player *Player, vote bool) (bool, error) {
 	return true, nil
 }
 
+// IsCurrentPlayer checks if it is the turn of the player.
 func (game *Game) IsCurrentPlayer(player *Player) bool {
 	return game.Players[game.currentPlayer].PlayerID == player.PlayerID
 }
 
+// RollDices rolls dices for current player.
 func (game *Game) RollDices() error {
 	if game.state != GameStateNewTurn {
 		return errors.New(IllegalState)
@@ -384,6 +415,7 @@ func (game *Game) RollDices() error {
 	return nil
 }
 
+// Move moves current player.
 func (game *Game) Move(room Card, mapX int, mapY int) error {
 	if game.state != GameStateMove {
 		return errors.New(IllegalState)
@@ -491,10 +523,12 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 	return nil
 }
 
+// IsValidPosition checks coordinate ranges.
 func (game *Game) IsValidPosition(mapX, mapY int) bool {
 	return mapX < 0 || mapX > 23 || mapY < 0 || mapY > 24
 }
 
+// IsPositionAdjacent checks if x/y2 is next to x/y1.
 func IsPositionAdjacent(x1, y1, x2, y2 int) bool {
 	dx := x1 - x2
 	dy := y1 - y2
@@ -502,6 +536,7 @@ func IsPositionAdjacent(x1, y1, x2, y2 int) bool {
 	return (dx == 0 && (dy == -1 || dy == +1)) || (dy == 0 && (dx == -1 || dx == 1))
 }
 
+// IsOccupied checks if position is occupied by a player.
 func (game *Game) IsOccupied(mapX, mapY int) *Player {
 	for _, p := range game.Players {
 		if p.MapX == mapX || p.MapY == mapY {
@@ -512,6 +547,7 @@ func (game *Game) IsOccupied(mapX, mapY int) *Player {
 	return nil
 }
 
+// IsSecretPassage checks if there is a secret passage.
 func (game *Game) IsSecretPassage(from, to Card) bool {
 	for _, secretPassage := range game.secretPassages {
 		if from == secretPassage[0] && to == secretPassage[1] {
@@ -522,9 +558,15 @@ func (game *Game) IsSecretPassage(from, to Card) bool {
 	return false
 }
 
-func (game *Game) QuerySolution(character, room, weapon Card) error {
+// QuerySolution starts a query solution process.
+func (game *Game) QuerySolution(character, weapon Card) error {
 	if game.state != GameStateQuery || game.queryingPlayer != -1 {
 		return errors.New(IllegalState)
+	}
+
+	room := game.Players[game.currentPlayer].Room
+	if !IsRoom(room) {
+		return errors.New(NotInARoom)
 	}
 
 	game.queryCharacter = character
@@ -537,6 +579,7 @@ func (game *Game) QuerySolution(character, room, weapon Card) error {
 	return nil
 }
 
+// NextPlayer returns the next current player.
 func (game *Game) NextPlayer() int {
 	for {
 		next := (game.currentPlayer + 1) % len(game.Players)
@@ -547,7 +590,8 @@ func (game *Game) NextPlayer() int {
 	}
 }
 
-func (game *Game) ProcessReveal(card Card) (bool, error) {
+// Reveal processes query solution answer.
+func (game *Game) Reveal(card Card) (bool, error) {
 	answeringPlayer := game.Players[game.queryingPlayer]
 
 	if IsCard(card) {
@@ -559,23 +603,24 @@ func (game *Game) ProcessReveal(card Card) (bool, error) {
 
 		return true, nil
 
-	} else {
-		currentPlayer := game.Players[game.currentPlayer]
-
-		if currentPlayer.HasCard(game.queryCharacter) || currentPlayer.HasCard(game.queryRoom) || currentPlayer.HasCard(game.queryWeapon) {
-			return false, errors.New(MustShowACard)
-		}
-
-		game.queryingPlayer = game.NextPlayer()
-
-		if game.queryingPlayer == game.currentPlayer {
-			game.state = GameStateTrySolution
-		}
-
-		return false, nil
 	}
+
+	currentPlayer := game.Players[game.currentPlayer]
+
+	if currentPlayer.HasCard(game.queryCharacter) || currentPlayer.HasCard(game.queryRoom) || currentPlayer.HasCard(game.queryWeapon) {
+		return false, errors.New(MustShowACard)
+	}
+
+	game.queryingPlayer = game.NextPlayer()
+
+	if game.queryingPlayer == game.currentPlayer {
+		game.state = GameStateTrySolution
+	}
+
+	return false, nil
 }
 
+// Pass skips to the next turn.
 func (game *Game) Pass() error {
 	switch game.state {
 	case GameStateQuery:
@@ -596,6 +641,7 @@ func (game *Game) Pass() error {
 	}
 }
 
+// CheckSolution verifies the solution.
 func (game *Game) CheckSolution(character, room, weapon Card) error {
 	if game.state != GameStateTrySolution {
 		return errors.New(IllegalState)

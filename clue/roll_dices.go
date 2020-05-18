@@ -1,15 +1,7 @@
 package clue
 
-import "log"
-
+// HandleRollDicestRequest processes roll dices requests.
 func HandleRollDicestRequest(server *Server, req Request) {
-	_, ok := req.Body.(*RollDicesRequest)
-
-	if !ok {
-		log.Println("ERROR request type mismatch, expecting RollDicesRequest, found", req.Body)
-		return
-	}
-
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {

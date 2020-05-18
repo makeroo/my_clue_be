@@ -1,15 +1,7 @@
 package clue
 
-import "log"
-
+// HandlePassRequest processes pass requests.
 func HandlePassRequest(server *Server, req Request) {
-	_, ok := req.Body.(*PassRequest)
-
-	if !ok {
-		log.Println("ERROR request type mismatch, expecting PassRequest, found", req.Body)
-		return
-	}
-
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {

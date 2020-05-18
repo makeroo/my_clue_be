@@ -1,15 +1,7 @@
 package clue
 
-import "log"
-
+// HandleCreateGameRequest processes create game requests.
 func HandleCreateGameRequest(server *Server, req Request) {
-	_, ok := req.Body.(*CreateGameRequest)
-
-	if !ok {
-		log.Println("ERROR request type mismatch, expecting CreateGameRequest, found", req.Body)
-		return
-	}
-
 	user := req.UserIO.user
 
 	if user == nil {

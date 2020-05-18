@@ -12,11 +12,15 @@ import (
 	"github.com/makeroo/my_clue_be/utils"
 )
 
+// MessageReader is a callback that reads expected payload from the ws.
+// I didn't succede in creating a "generic" readJSON function so everytime I
+// have to read from a ws I have to create a MessageReader func.
 type MessageReader func(*websocket.Conn) (interface{}, error)
 
-type RequestHandler struct {
+// RequestHandlerDescriptor is the descriptor of a request handler.
+type RequestHandlerDescriptor struct {
 	BodyReader MessageReader
-	Handler    RequestExecutor
+	Handler    RequestHandler
 }
 
 // Server orchestrates and handles all FE requests.
@@ -24,7 +28,7 @@ type Server struct {
 	upgrader *websocket.Upgrader
 	rand     *rand.Rand
 
-	handlers map[string]RequestHandler
+	handlerDescriptors map[string]RequestHandlerDescriptor
 
 	// Users that have succesfully signed in.
 	signedUsers map[string]*User
@@ -46,7 +50,7 @@ type Server struct {
 	games map[string]*Game
 }
 
-/* UserIO handles ws requests.
+/* UserIO collects data to handle ws I/O.
  * There is an instance per websocket/browser tab.
  * A user can have multiple tab/windows running different games.
  * Each tab is binded to one game at most though.
@@ -56,28 +60,34 @@ type UserIO struct {
 	ws   *websocket.Conn
 	send chan MessageFrame
 
-	user   *User
+	// user is defined after a sign in request
+	user *User
+	// player  is defined after a create or join game request
 	player *Player
 }
 
 // User collects all the info to recognize a user and to allow her/him to play Clue.
 type User struct {
-	//server *Server
-
-	Name  string
+	// Name is visible to all users.
+	Name string
+	// Token is the secret that used to recognize a user.
 	Token string
 
+	// io is a collection of all opened websockets of a user.
 	io []*UserIO
 
 	joinedGames []*Player
 }
 
-type RequestExecutor func(*Server, Request)
+// RequestHandler implements the logic of a specific request.
+type RequestHandler func(*Server, Request)
 
+// Request is an incoming request to be served.
 type Request struct {
+	// UserIO is the user who issued the request.
 	UserIO  *UserIO
 	Body    interface{}
-	Handler RequestExecutor
+	Handler RequestHandler
 }
 
 // NewServer builds a Server instance.
@@ -97,7 +107,7 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 		writeWait:         10 * time.Second,
 		maxGamesPerPlayer: 10,
 
-		handlers: map[string]RequestHandler{
+		handlerDescriptors: map[string]RequestHandlerDescriptor{
 			MessageSignInRequest: {
 				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
 					body := SignInRequest{}
@@ -107,12 +117,8 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 				Handler: HandleSignInRequest,
 			},
 			MessageCreateGameRequest: {
-				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
-					body := CreateGameRequest{}
-					err := ws.ReadJSON(&body)
-					return &body, err
-				},
-				Handler: HandleSignInRequest,
+				BodyReader: nil,
+				Handler:    HandleSignInRequest,
 			},
 			MessageJoinGameRequest: {
 				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
@@ -139,12 +145,8 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 				Handler: HandleVoteStartRequest,
 			},
 			MessageRollDicesRequest: {
-				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
-					body := RollDicesRequest{}
-					err := ws.ReadJSON(&body)
-					return &body, err
-				},
-				Handler: HandleRollDicestRequest,
+				BodyReader: nil,
+				Handler:    HandleRollDicestRequest,
 			},
 			MessageMoveRequest: {
 				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
@@ -171,12 +173,8 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 				Handler: HandleRevealRequest,
 			},
 			MessagePassRequest: {
-				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
-					body := PassRequest{}
-					err := ws.ReadJSON(&body)
-					return &body, err
-				},
-				Handler: HandlePassRequest,
+				BodyReader: nil,
+				Handler:    HandlePassRequest,
 			},
 			MessageDeclareSolutionRequest: {
 				BodyReader: func(ws *websocket.Conn) (interface{}, error) {
@@ -271,8 +269,8 @@ func (server *Server) removeClient(userIO *UserIO) {
 	log.Println("warning, user not found")
 }
 
-func (server *Server) handlerForHeader(msgType string) (RequestHandler, bool) {
-	requestHandler, ok := server.handlers[msgType]
+func (server *Server) handlerForHeader(msgType string) (RequestHandlerDescriptor, bool) {
+	requestHandler, ok := server.handlerDescriptors[msgType]
 	return requestHandler, ok
 }
 
@@ -421,10 +419,17 @@ func (userIO *UserIO) readPump(server *Server) {
 			continue
 		}
 
-		body, err := requestHandler.BodyReader(ws)
-		if err != nil {
-			log.Println("something went wrong, better to shutdown ws", err)
-			break
+		var body interface{}
+		if requestHandler.BodyReader != nil {
+			body, err = requestHandler.BodyReader(ws)
+
+			if err != nil {
+				log.Println("something went wrong, better to shutdown ws", err)
+				break
+			}
+
+		} else {
+			body = nil
 		}
 
 		server.process <- Request{

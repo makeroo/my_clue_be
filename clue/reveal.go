@@ -2,6 +2,7 @@ package clue
 
 import "log"
 
+// HandleRevealRequest processes reveal requests.
 func HandleRevealRequest(server *Server, req Request) {
 	reveal, ok := req.Body.(*RevealRequest)
 
@@ -24,7 +25,7 @@ func HandleRevealRequest(server *Server, req Request) {
 		return
 	}
 
-	matched, err := game.ProcessReveal(reveal.Card)
+	matched, err := game.Reveal(reveal.Card)
 
 	if err != nil {
 		server.sendError(req.UserIO, err.Error())
