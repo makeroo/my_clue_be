@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleDeclareSolutionRequest processes declare solution requests.
-func HandleDeclareSolutionRequest(server *Server, req Request) {
+func HandleDeclareSolutionRequest(server *Server, req *Request) {
 	declareSolution, ok := req.Body.(*DeclareSolutionRequest)
 
 	if !ok {
@@ -14,7 +14,7 @@ func HandleDeclareSolutionRequest(server *Server, req Request) {
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
@@ -22,7 +22,7 @@ func HandleDeclareSolutionRequest(server *Server, req Request) {
 	err = game.CheckSolution(declareSolution.Character, declareSolution.Room, declareSolution.Weapon)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

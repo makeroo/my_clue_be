@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleRevealRequest processes reveal requests.
-func HandleRevealRequest(server *Server, req Request) {
+func HandleRevealRequest(server *Server, req *Request) {
 	reveal, ok := req.Body.(*RevealRequest)
 
 	if !ok {
@@ -14,13 +14,13 @@ func HandleRevealRequest(server *Server, req Request) {
 	game, err := server.checkStartedGame(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
 
 	if req.UserIO.player.PlayerID != game.queryingPlayer {
-		server.sendError(req.UserIO, NotYourTurn)
+		server.sendError(req, NotYourTurn)
 
 		return
 	}
@@ -28,7 +28,7 @@ func HandleRevealRequest(server *Server, req Request) {
 	matched, err := game.Reveal(reveal.Card)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

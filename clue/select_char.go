@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleSelectCharacterRequest processes select char requests.
-func HandleSelectCharacterRequest(server *Server, req Request) {
+func HandleSelectCharacterRequest(server *Server, req *Request) {
 	selectCharacter, ok := req.Body.(*SelectCharacterRequest)
 
 	if !ok {
@@ -15,7 +15,7 @@ func HandleSelectCharacterRequest(server *Server, req Request) {
 
 	notify, err := game.SelectCharacter(req.UserIO.player, selectCharacter.Character)
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

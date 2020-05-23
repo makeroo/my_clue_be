@@ -56,8 +56,6 @@ const (
 const (
 	// NotSignedIn error: issued for game related requests.
 	NotSignedIn = "not_signed_in"
-	// AlreadySignedIn error: perhaps a token mismatch. FIXME: this is an invalid error
-	AlreadySignedIn = "already_signed_in"
 	// CannotJoinRunningGame error: illegal join game request.
 	CannotJoinRunningGame = "cannot_join_running_game"
 	// TableIsFull error: cannot join.
@@ -108,11 +106,20 @@ type SignInResponse struct {
 	RunningGames []GameSynopsis `json:"running_games,omitempty"`
 }
 
+// GamePlayer is a synthetic description of a Clue game player.
+type GamePlayer struct {
+	Character int    `json:"character,omitempty"`
+	PlayerID  int    `json:"player_id"`
+	Name      string `json:"name"`
+	Online    bool   `json:"online"`
+}
+
 // GameSynopsis is a preview of a joined game.
 type GameSynopsis struct {
-	GameID    string `json:"game_id"`
-	Character int    `json:"character"`
-	PlayerID  int    `json:"player_id"`
+	GameID    string       `json:"game_id"`
+	Character int          `json:"character,omitempty"`
+	PlayerID  int          `json:"player_id"`
+	Others    []GamePlayer `json:"others,omitempty"`
 }
 
 // CreateGameResponse describes a create game response.
@@ -224,6 +231,6 @@ type MessageFrame struct {
 
 // MessageHeader is the first value  sent throught the web socket.
 type MessageHeader struct {
-	Type string `json:"type"`
-	//	Error string `json:"error,omitempty"`
+	Type  string `json:"type"`
+	ReqID int    `json:"req_id"`
 }

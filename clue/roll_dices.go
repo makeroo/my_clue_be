@@ -1,17 +1,17 @@
 package clue
 
 // HandleRollDicestRequest processes roll dices requests.
-func HandleRollDicestRequest(server *Server, req Request) {
+func HandleRollDicestRequest(server *Server, req *Request) {
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
 
 	if err := game.RollDices(); err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 // HandleSignInRequest processes sign in requests.
-func HandleSignInRequest(server *Server, req Request) {
+func HandleSignInRequest(server *Server, req *Request) {
 	signIn, ok := req.Body.(*SignInRequest)
 
 	if !ok {
@@ -20,7 +20,15 @@ func HandleSignInRequest(server *Server, req Request) {
 		// this is a new user: generate a new token and return it
 
 		if user != nil {
-			server.sendError(req.UserIO, AlreadySignedIn)
+			req.UserIO.send <- MessageFrame{
+				Header: MessageHeader{
+					Type:  MessageSignInResponse,
+					ReqID: req.ReqID,
+				},
+				Body: SignInResponse{
+					RunningGames: user.RunningGames(),
+				},
+			}
 
 			return
 		}
@@ -39,7 +47,8 @@ func HandleSignInRequest(server *Server, req Request) {
 
 		req.UserIO.send <- MessageFrame{
 			Header: MessageHeader{
-				Type: MessageSignInResponse,
+				Type:  MessageSignInResponse,
+				ReqID: req.ReqID,
 			},
 			Body: SignInResponse{
 				Token: user.Token,
@@ -52,7 +61,7 @@ func HandleSignInRequest(server *Server, req Request) {
 		// signin request from an already signed in user
 
 		if user.Token != signIn.Token {
-			server.sendError(req.UserIO, TokenMismatch)
+			server.sendError(req, TokenMismatch)
 
 			return
 		}
@@ -61,7 +70,15 @@ func HandleSignInRequest(server *Server, req Request) {
 
 		for _, io := range user.io {
 			if io == req.UserIO {
-				server.sendError(req.UserIO, AlreadySignedIn)
+				req.UserIO.send <- MessageFrame{
+					Header: MessageHeader{
+						Type:  MessageSignInResponse,
+						ReqID: req.ReqID,
+					},
+					Body: SignInResponse{
+						RunningGames: user.RunningGames(),
+					},
+				}
 
 				return
 			}
@@ -82,7 +99,7 @@ func HandleSignInRequest(server *Server, req Request) {
 		user = server.signedUsers[signIn.Token]
 
 		if user == nil {
-			server.sendError(req.UserIO, UnknownToken)
+			server.sendError(req, UnknownToken)
 
 			return
 		}
@@ -94,22 +111,13 @@ func HandleSignInRequest(server *Server, req Request) {
 
 		user.Name = signIn.Name
 
-		var runningGames []GameSynopsis = nil
-
-		for _, player := range user.joinedGames {
-			runningGames = append(runningGames, GameSynopsis{
-				GameID:    player.Game.GameID,
-				Character: player.Character,
-				PlayerID:  player.PlayerID,
-			})
-		}
-
 		req.UserIO.send <- MessageFrame{
 			Header: MessageHeader{
-				Type: MessageSignInResponse,
+				Type:  MessageSignInResponse,
+				ReqID: req.ReqID,
 			},
 			Body: SignInResponse{
-				RunningGames: runningGames,
+				RunningGames: req.UserIO.user.RunningGames(),
 			},
 		}
 

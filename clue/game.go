@@ -161,6 +161,9 @@ type Player struct {
 	// UserIO is defined if the user is connected, nil otherwise.
 	UserIO *UserIO
 
+	// User is a link to user's infos when user is offline and UserIO is nil
+	User *User
+
 	// FailedSolution is false until the player declared a solution
 	// that is wrong.
 	FailedSolution bool
@@ -253,6 +256,7 @@ func (game *Game) AddPlayer(userIO *UserIO) (*Player, error) {
 	player := &Player{
 		Game:     game,
 		UserIO:   userIO,
+		User:     userIO.user,
 		PlayerID: len(game.Players) + 1,
 	}
 

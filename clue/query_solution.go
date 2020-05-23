@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleQuerySolutionRequest processes query solution requests.
-func HandleQuerySolutionRequest(server *Server, req Request) {
+func HandleQuerySolutionRequest(server *Server, req *Request) {
 	querySolution, ok := req.Body.(*QuerySolutionRequest)
 
 	if !ok {
@@ -14,13 +14,13 @@ func HandleQuerySolutionRequest(server *Server, req Request) {
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
 
 	if err := game.QuerySolution(querySolution.Character, querySolution.Weapon); err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

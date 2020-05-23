@@ -37,7 +37,7 @@ type Server struct {
 
 	register   chan *websocket.Conn
 	unregister chan *UserIO
-	process    chan Request
+	process    chan *Request
 
 	maxMessageSize int64
 	pongWait       time.Duration
@@ -80,12 +80,13 @@ type User struct {
 }
 
 // RequestHandler implements the logic of a specific request.
-type RequestHandler func(*Server, Request)
+type RequestHandler func(*Server, *Request)
 
 // Request is an incoming request to be served.
 type Request struct {
 	// UserIO is the user who issued the request.
 	UserIO  *UserIO
+	ReqID   int
 	Body    interface{}
 	Handler RequestHandler
 }
@@ -100,7 +101,7 @@ func NewServer(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 		games:             make(map[string]*Game),
 		register:          make(chan *websocket.Conn),
 		unregister:        make(chan *UserIO),
-		process:           make(chan Request),
+		process:           make(chan *Request),
 		maxMessageSize:    1024,
 		pongWait:          60 * time.Second,
 		pingPeriod:        55 * time.Second,
@@ -274,14 +275,15 @@ func (server *Server) handlerForHeader(msgType string) (RequestHandlerDescriptor
 	return requestHandler, ok
 }
 
-func (server *Server) handleRequest(req Request) {
+func (server *Server) handleRequest(req *Request) {
 	req.Handler(server, req)
 }
 
-func (server *Server) sendError(userIO *UserIO, err string) {
-	userIO.send <- MessageFrame{
+func (server *Server) sendError(req *Request, err string) {
+	req.UserIO.send <- MessageFrame{
 		Header: MessageHeader{
-			Type: MessageError,
+			Type:  MessageError,
+			ReqID: req.ReqID,
 		},
 		Body: NotifyError{
 			Error: err,
@@ -289,7 +291,7 @@ func (server *Server) sendError(userIO *UserIO, err string) {
 	}
 }
 
-func (server *Server) checkStartedGame(req Request) (*Game, error) {
+func (server *Server) checkStartedGame(req *Request) (*Game, error) {
 	user := req.UserIO.user
 
 	if user == nil {
@@ -305,7 +307,7 @@ func (server *Server) checkStartedGame(req Request) (*Game, error) {
 	return game, nil
 }
 
-func (server *Server) checkCurrentPlayer(req Request) (*Game, error) {
+func (server *Server) checkCurrentPlayer(req *Request) (*Game, error) {
 	game, err := server.checkStartedGame(req)
 
 	if err != nil {
@@ -432,8 +434,9 @@ func (userIO *UserIO) readPump(server *Server) {
 			body = nil
 		}
 
-		server.process <- Request{
+		server.process <- &Request{
 			UserIO:  userIO,
+			ReqID:   message.ReqID,
 			Body:    body,
 			Handler: requestHandler.Handler,
 		}
@@ -481,4 +484,35 @@ func (userIO *UserIO) writePump(server *Server) {
 			}
 		}
 	}
+}
+
+// RunningGames return a an array of synopses of the non completed games joined by the user.
+func (user *User) RunningGames() []GameSynopsis {
+	var runningGames []GameSynopsis = nil
+
+	for _, player := range user.joinedGames {
+		var others []GamePlayer = nil
+
+		for _, other := range player.Game.Players {
+			if other.PlayerID == player.PlayerID {
+				continue
+			}
+
+			others = append(others, GamePlayer{
+				Character: other.Character,
+				PlayerID:  other.PlayerID,
+				Name:      other.User.Name,
+				Online:    other.UserIO != nil,
+			})
+		}
+
+		runningGames = append(runningGames, GameSynopsis{
+			GameID:    player.Game.GameID,
+			Character: player.Character,
+			PlayerID:  player.PlayerID,
+			Others:    others,
+		})
+	}
+
+	return runningGames
 }

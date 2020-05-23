@@ -1,11 +1,11 @@
 package clue
 
 // HandlePassRequest processes pass requests.
-func HandlePassRequest(server *Server, req Request) {
+func HandlePassRequest(server *Server, req *Request) {
 	game, err := server.checkCurrentPlayer(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
@@ -13,7 +13,7 @@ func HandlePassRequest(server *Server, req Request) {
 	err = game.Pass()
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}

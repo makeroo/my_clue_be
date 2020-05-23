@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleJoinGameRequest processes join game requests.
-func HandleJoinGameRequest(server *Server, req Request) {
+func HandleJoinGameRequest(server *Server, req *Request) {
 	joinGame, ok := req.Body.(*JoinGameRequest)
 
 	if !ok {
@@ -14,7 +14,7 @@ func HandleJoinGameRequest(server *Server, req Request) {
 	user := req.UserIO.user
 
 	if user == nil {
-		server.sendError(req.UserIO, NotSignedIn)
+		server.sendError(req, NotSignedIn)
 
 		return
 	}
@@ -22,7 +22,7 @@ func HandleJoinGameRequest(server *Server, req Request) {
 	if req.UserIO.player != nil {
 		// TODO: what about changing game inside a tab?
 		// workaround: close and repone ws
-		server.sendError(req.UserIO, AlreadyPlaying)
+		server.sendError(req, AlreadyPlaying)
 
 		return
 	}
@@ -30,7 +30,7 @@ func HandleJoinGameRequest(server *Server, req Request) {
 	game := server.games[joinGame.GameID]
 
 	if game == nil {
-		server.sendError(req.UserIO, UnknownGame)
+		server.sendError(req, UnknownGame)
 
 		return
 	}
@@ -41,7 +41,7 @@ func HandleJoinGameRequest(server *Server, req Request) {
 		if player.Game.GameID == game.GameID {
 			if player.UserIO != nil {
 				// no more than 1 tab(ws) per game
-				server.sendError(req.UserIO, AlreadyPlaying)
+				server.sendError(req, AlreadyPlaying)
 
 				return
 			}
@@ -62,7 +62,7 @@ func HandleJoinGameRequest(server *Server, req Request) {
 		player, err := game.AddPlayer(req.UserIO)
 
 		if err != nil {
-			server.sendError(req.UserIO, err.Error())
+			server.sendError(req, err.Error())
 
 			return
 		}
@@ -90,7 +90,8 @@ func HandleJoinGameRequest(server *Server, req Request) {
 
 	req.UserIO.send <- MessageFrame{
 		Header: MessageHeader{
-			Type: MessageJoinGameResponse,
+			Type:  MessageJoinGameResponse,
+			ReqID: req.ReqID,
 		},
 		Body: JoinGameResponse{
 			Players: players,

@@ -3,7 +3,7 @@ package clue
 import "log"
 
 // HandleVoteStartRequest processes vote start requests.
-func HandleVoteStartRequest(server *Server, req Request) {
+func HandleVoteStartRequest(server *Server, req *Request) {
 	voteStart, ok := req.Body.(*VoteStartRequest)
 
 	if !ok {
@@ -14,7 +14,7 @@ func HandleVoteStartRequest(server *Server, req Request) {
 	game, err := server.checkStartedGame(req)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
@@ -22,7 +22,7 @@ func HandleVoteStartRequest(server *Server, req Request) {
 	start, err := game.VoteStart(req.UserIO.player, voteStart.Vote)
 
 	if err != nil {
-		server.sendError(req.UserIO, err.Error())
+		server.sendError(req, err.Error())
 
 		return
 	}
