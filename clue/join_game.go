@@ -35,7 +35,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 		return
 	}
 
-	found := false
+	var rPlayer *Player = nil
 
 	for _, player := range user.joinedGames {
 		if player.Game.GameID == game.GameID {
@@ -52,14 +52,14 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			player.UserIO = req.UserIO
 			req.UserIO.player = player
 
-			found = true
+			rPlayer = player
 
 			break
 		}
 	}
 
-	if !found {
-		player, err := game.AddPlayer(req.UserIO)
+	if rPlayer == nil {
+		rPlayer, err := game.AddPlayer(req.UserIO)
 
 		if err != nil {
 			server.sendError(req, err.Error())
@@ -67,8 +67,8 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			return
 		}
 
-		req.UserIO.player = player
-		user.joinedGames = append(user.joinedGames, player)
+		req.UserIO.player = rPlayer
+		user.joinedGames = append(user.joinedGames, rPlayer)
 	}
 
 	players := make([]NotifyUserState, len(game.Players))
@@ -78,11 +78,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			PlayerID:  player.PlayerID,
 			Character: player.Character,
 			Online:    player.UserIO != nil,
-		}
-
-		if player.UserIO != nil {
-			// FIXME: when a user is offline I don't know her/his name
-			userState.Name = player.UserIO.user.Name
+			Name:      player.User.Name,
 		}
 
 		players[i] = userState
@@ -94,7 +90,8 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			ReqID: req.ReqID,
 		},
 		Body: JoinGameResponse{
-			Players: players,
+			Players:  players,
+			PlayerID: rPlayer.PlayerID,
 		},
 	}
 

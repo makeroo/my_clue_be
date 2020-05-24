@@ -124,7 +124,8 @@ type GameSynopsis struct {
 
 // CreateGameResponse describes a create game response.
 type CreateGameResponse struct {
-	GameID string `json:"game_id"`
+	GameID   string `json:"game_id"`
+	PlayerID int    `json:"player_id"`
 }
 
 // JoinGameRequest describes a join game request.
@@ -134,7 +135,8 @@ type JoinGameRequest struct {
 
 // JoinGameResponse describes a join game response.
 type JoinGameResponse struct {
-	Players []NotifyUserState `json:"players"`
+	Players  []NotifyUserState `json:"players"`
+	PlayerID int               `json:"player_id"`
 }
 
 // SelectCharacterRequest describes a select char request.

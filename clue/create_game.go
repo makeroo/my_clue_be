@@ -18,8 +18,6 @@ func HandleCreateGameRequest(server *Server, req *Request) {
 
 	g := NewGame(server.randomGameToken(), server.rand)
 
-	server.games[g.GameID] = g
-
 	player, err := g.AddPlayer(req.UserIO)
 
 	if err != nil {
@@ -27,6 +25,8 @@ func HandleCreateGameRequest(server *Server, req *Request) {
 
 		return
 	}
+
+	server.games[g.GameID] = g
 
 	req.UserIO.player = player
 	user.joinedGames = append(user.joinedGames, player)
@@ -36,6 +36,9 @@ func HandleCreateGameRequest(server *Server, req *Request) {
 			Type:  MessageCreateGameResponse,
 			ReqID: req.ReqID,
 		},
-		Body: CreateGameResponse{GameID: g.GameID},
+		Body: CreateGameResponse{
+			GameID:   g.GameID,
+			PlayerID: player.PlayerID,
+		},
 	}
 }
