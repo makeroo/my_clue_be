@@ -365,6 +365,10 @@ func (server *Server) notifyPlayers(game *Game, skipPlayer *Player, message stri
 			continue
 		}
 
+		if player.UserIO == nil {
+			continue
+		}
+
 		player.UserIO.send <- MessageFrame{
 			Header: MessageHeader{
 				Type: message,
