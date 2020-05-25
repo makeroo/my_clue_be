@@ -59,7 +59,9 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 	}
 
 	if rPlayer == nil {
-		rPlayer, err := game.AddPlayer(req.UserIO)
+		var err error
+
+		rPlayer, err = game.AddPlayer(req.UserIO)
 
 		if err != nil {
 			server.sendError(req, err.Error())
@@ -102,7 +104,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 		Online:    true,
 	}
 
-	server.notifyPlayers(game, req.UserIO.player, MessageNotifyGameState, func(player *Player) interface{} {
+	server.notifyPlayers(game, req.UserIO.player, MessageNotifyUserState, func(player *Player) interface{} {
 		return message
 	})
 }
