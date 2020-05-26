@@ -35,6 +35,12 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 		return
 	}
 
+	if game.state == GameEnded {
+		server.sendError(req, IllegalState)
+
+		return
+	}
+
 	var rPlayer *Player = nil
 
 	for _, player := range user.joinedGames {
@@ -95,6 +101,22 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			Players:  players,
 			PlayerID: rPlayer.PlayerID,
 		},
+	}
+
+	if game.state != GameStateStarting {
+		req.UserIO.send <- MessageFrame{
+			Header: MessageHeader{
+				Type: MessageNotifyGameStarted,
+			},
+			Body: game.GameStartedMessage(rPlayer),
+		}
+
+		req.UserIO.send <- MessageFrame{
+			Header: MessageHeader{
+				Type: MessageNotifyGameState,
+			},
+			Body: game.FullState(),
+		}
 	}
 
 	message := NotifyUserState{

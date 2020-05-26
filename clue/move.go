@@ -19,6 +19,8 @@ func HandleMoveRequest(server *Server, req *Request) {
 		return
 	}
 
+	movingPlayer := req.UserIO.player
+
 	if err := game.Move(move.EnterRoom, move.MapX, move.MapY); err != nil {
 		server.sendError(req, err.Error())
 
@@ -29,9 +31,14 @@ func HandleMoveRequest(server *Server, req *Request) {
 		State:         game.state,
 		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
 
-		Room: req.UserIO.player.Room,
-		MapX: req.UserIO.player.MapX,
-		MapY: req.UserIO.player.MapY,
+		PlayerPositions: []PlayerPosition{
+			{
+				PlayerID: movingPlayer.PlayerID,
+				Room:     movingPlayer.Room,
+				MapX:     movingPlayer.MapX,
+				MapY:     movingPlayer.MapY,
+			},
+		},
 	}
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {

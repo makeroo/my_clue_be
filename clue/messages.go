@@ -203,24 +203,33 @@ type NotifyGameStarted struct {
 	PlayersOrder []int  `json:"players_order"`
 }
 
+// PlayerPosition notifies a player position.
+// A player can be either in a room or in a hallway.
+// Room and MapX/Y are used respectively.
+type PlayerPosition struct {
+	PlayerID int  `json:"player_id"`
+	Room     Card `json:"room,omitempty"`
+	MapX     int  `json:"map_x,omitempty"`
+	MapY     int  `json:"map_y,omitempty"`
+}
+
 // NotifyGameState is sent to all players of a table whenever something
 // happens.
 type NotifyGameState struct {
 	State         State `json:"state"`
 	CurrentPlayer int   `json:"current_player"`
 
-	Dice1 int `json:"dice1,omitempty"`
-	Dice2 int `json:"dice2,omitempty"`
+	Dice1          int `json:"dice1,omitempty"`
+	Dice2          int `json:"dice2,omitempty"`
+	RemainingSteps int `json:"remaining_steps,omitempty"`
 
-	Room Card `json:"room,omitempty"`
-	MapX int  `json:"map_x,omitempty"`
-	MapY int  `json:"map_y,omitempty"`
+	PlayerPositions []PlayerPosition `json:"player_positions,omitempty"`
 
 	AnsweringPlayer int  `json:"answering_player,omitempty"`
 	Character       Card `json:"character,omitempty"`
-	//Room Card
-	Weapon  Card `json:"weapon,omitempty"`
-	Matched bool `json:"matched,omitempty"`
+	Room            Card `json:"room,omitempty"`
+	Weapon          Card `json:"weapon,omitempty"`
+	Matched         bool `json:"matched,omitempty"`
 }
 
 // MessageFrame is a message going from fe to be or vicersa.

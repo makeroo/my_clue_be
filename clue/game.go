@@ -665,3 +665,75 @@ func (game *Game) CheckSolution(character, room, weapon Card) error {
 
 	return nil
 }
+
+// GameStartedMessage return a NotifyGameStarted message so that web client can reinitialize from scratch.
+func (game *Game) GameStartedMessage(player *Player) NotifyGameStarted {
+	var playersOrder []int
+
+	for _, player := range game.Players {
+		playersOrder = append(playersOrder, player.PlayerID)
+	}
+
+	return NotifyGameStarted{
+		Deck:         player.Deck,
+		PlayersOrder: playersOrder,
+	}
+}
+
+// FullState return a fully compiled NotifyGameState so that web client can reinitialize from stratch.
+// Usually NotifyGameState contains only incremental changes.
+func (game *Game) FullState() NotifyGameState {
+	r := NotifyGameState{
+		State:         game.state,
+		CurrentPlayer: game.currentPlayer,
+	}
+
+	switch game.state {
+	case GameStateStarting:
+		// nop
+		break
+	case GameStateNewTurn:
+		r.PlayerPositions = game.PlayerPositions()
+		break
+	case GameStateCard:
+		// nop
+		break
+	case GameStateMove:
+		r.PlayerPositions = game.PlayerPositions()
+		r.Dice1 = game.dice1
+		r.Dice2 = game.dice2
+		r.RemainingSteps = game.remainingSteps
+		break
+	case GameStateQuery:
+		r.PlayerPositions = game.PlayerPositions()
+		r.Room = game.queryRoom
+		r.Weapon = game.queryWeapon
+		r.Character = game.queryCharacter
+		r.AnsweringPlayer = game.queryingPlayer
+		break
+	case GameStateTrySolution:
+		r.PlayerPositions = game.PlayerPositions()
+		break
+	case GameEnded:
+		// nop
+		break
+	}
+
+	return r
+}
+
+// PlayerPositions return an array containing all players' position.
+func (game *Game) PlayerPositions() []PlayerPosition {
+	var r []PlayerPosition
+
+	for _, player := range game.Players {
+		r = append(r, PlayerPosition{
+			PlayerID: player.PlayerID,
+			Room:     player.Room,
+			MapX:     player.MapX,
+			MapY:     player.MapY,
+		})
+	}
+
+	return r
+}
