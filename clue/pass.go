@@ -20,7 +20,7 @@ func HandlePassRequest(server *Server, req *Request) {
 
 	message := NotifyGameState{
 		State:         game.state,
-		CurrentPlayer: game.currentPlayer,
+		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
 	}
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {

@@ -300,7 +300,7 @@ func (game *Game) Start() {
 	}
 
 	for _, player := range game.Players {
-		player.Room = Candlestick // any non room card is fine
+		player.Room = 0
 
 		pos := initialPositions[Card(player.Character)]
 
@@ -315,7 +315,7 @@ func (game *Game) shufflePlayers() {
 }
 
 func (game *Game) randomCard(min Card, max Card) Card {
-	n := game.rand.Intn(int(max)-int(min)) + int(min)
+	n := game.rand.Intn(int(max)-int(min)+1) + int(min)
 
 	return Card(n)
 }
@@ -325,14 +325,12 @@ func (game *Game) makeDeckWithoutSolution() []Card {
 
 	p := 0
 
-	for i := 0; i < Cards; i++ {
-		c := Card(i)
-
+	for c := Candlestick; c <= MrsWhite; c++ {
 		if c == game.solutionCharacter || c == game.solutionRoom || c == game.solutionWeapon {
 			continue
 		}
 
-		deck[p] = Card(i)
+		deck[p] = c
 		p++
 	}
 
@@ -685,7 +683,7 @@ func (game *Game) GameStartedMessage(player *Player) NotifyGameStarted {
 func (game *Game) FullState() NotifyGameState {
 	r := NotifyGameState{
 		State:         game.state,
-		CurrentPlayer: game.currentPlayer,
+		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
 	}
 
 	switch game.state {

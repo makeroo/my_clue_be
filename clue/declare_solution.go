@@ -32,7 +32,7 @@ func HandleDeclareSolutionRequest(server *Server, req *Request) {
 	}
 
 	if game.state != GameEnded {
-		message.CurrentPlayer = game.currentPlayer
+		message.CurrentPlayer = game.Players[game.currentPlayer].PlayerID
 		message.Character = declareSolution.Character
 		message.Room = declareSolution.Room
 		message.Weapon = declareSolution.Weapon
