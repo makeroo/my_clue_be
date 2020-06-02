@@ -194,17 +194,17 @@ type Game struct {
 
 // IsRoom returns true if the given card is a room.
 func IsRoom(card Card) bool {
-	return !IsWeapon(card) && !IsCharacter(card)
+	return Kitchen <= card && card <= Study
 }
 
 // IsWeapon returns true if the given card is a weapon.
 func IsWeapon(card Card) bool {
-	return 0 < card && card < Kitchen
+	return Candlestick <= card && card <= Wrenck
 }
 
 // IsCharacter returns true if the given card is a character.
 func IsCharacter(card Card) bool {
-	return card > Study
+	return MissScarlett <= card && card <= MrsWhite
 }
 
 // IsCard returns true if the card is valid.
@@ -527,7 +527,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 
 // IsValidPosition checks coordinate ranges.
 func (game *Game) IsValidPosition(mapX, mapY int) bool {
-	return mapX < 0 || mapX > 23 || mapY < 0 || mapY > 24
+	return mapX >= 0 && mapX <= 23 && mapY >= 0 && mapY <= 24
 }
 
 // IsPositionAdjacent checks if x/y2 is next to x/y1.
