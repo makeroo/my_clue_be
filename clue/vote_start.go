@@ -33,23 +33,11 @@ func HandleVoteStartRequest(server *Server, req *Request) {
 
 	game.Start()
 
-	playersOrder := []int{}
-
-	for _, player := range game.Players {
-		playersOrder = append(playersOrder, player.PlayerID)
-	}
-
 	server.notifyPlayers(game, nil, MessageNotifyGameStarted, func(player *Player) interface{} {
-		return NotifyGameStarted{
-			Deck:         player.Deck,
-			PlayersOrder: playersOrder,
-		}
+		return game.GameStartedMessage(player)
 	})
 
-	newTurn := NotifyGameState{
-		State:         game.state,
-		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
-	}
+	newTurn := game.FullState()
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {
 		return newTurn
