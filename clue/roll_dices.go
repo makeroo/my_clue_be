@@ -17,10 +17,11 @@ func HandleRollDicestRequest(server *Server, req *Request) {
 	}
 
 	message := NotifyGameState{
-		State:         game.state,
-		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
-		Dice1:         game.dice1,
-		Dice2:         game.dice2,
+		State:          game.state,
+		CurrentPlayer:  game.Players[game.currentPlayer].PlayerID,
+		Dice1:          game.dice1,
+		Dice2:          game.dice2,
+		RemainingSteps: game.remainingSteps,
 	}
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {

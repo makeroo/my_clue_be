@@ -28,8 +28,9 @@ func HandleMoveRequest(server *Server, req *Request) {
 	}
 
 	message := NotifyGameState{
-		State:         game.state,
-		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
+		State:          game.state,
+		CurrentPlayer:  game.Players[game.currentPlayer].PlayerID,
+		RemainingSteps: game.remainingSteps,
 
 		PlayerPositions: []PlayerPosition{
 			{
