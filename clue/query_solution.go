@@ -19,18 +19,29 @@ func HandleQuerySolutionRequest(server *Server, req *Request) {
 		return
 	}
 
-	if err := game.QuerySolution(querySolution.Character, querySolution.Weapon); err != nil {
+	message := NotifyGameState{
+		State:     game.state,
+		Character: game.queryCharacter,
+		Room:      game.queryRoom,
+		Weapon:    game.queryWeapon,
+	}
+
+	player, err := game.QuerySolution(querySolution.Character, querySolution.Weapon)
+
+	if err != nil {
 		server.sendError(req, err.Error())
 
 		return
 	}
 
-	message := NotifyGameState{
-		State:           game.state,
-		AnsweringPlayer: game.Players[game.queryingPlayer].PlayerID,
-		Character:       game.queryCharacter,
-		Room:            game.queryRoom,
-		Weapon:          game.queryWeapon,
+	message.AnsweringPlayer = game.Players[game.queryingPlayer].PlayerID
+
+	if player != nil {
+		message.PlayerPositions = append(message.PlayerPositions, PlayerPosition{
+			PlayerID: player.PlayerID,
+			Room:     player.Room,
+			// map x/y are always 0
+		})
 	}
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {

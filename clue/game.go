@@ -561,24 +561,36 @@ func (game *Game) IsSecretPassage(from, to Card) bool {
 }
 
 // QuerySolution starts a query solution process.
-func (game *Game) QuerySolution(character, weapon Card) error {
+func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 	if game.state != GameStateQuery || game.queryingPlayer != -1 {
-		return errors.New(IllegalState)
+		return nil, errors.New(IllegalState)
 	}
 
 	room := game.Players[game.currentPlayer].Room
 	if !IsRoom(room) {
-		return errors.New(NotInARoom)
+		return nil, errors.New(NotInARoom)
 	}
 
 	game.queryCharacter = character
 	game.queryRoom = room
 	game.queryWeapon = weapon
-	// TODO: not len(players) but playingPlayers
-	// because we have to exclude those who tried and failed and are not playing anymore
 	game.queryingPlayer = game.NextPlayer()
 
-	return nil
+	for _, player := range game.Players {
+		if Card(player.Character) == character {
+			if player.Room == room {
+				break
+			}
+
+			player.Room = room
+			player.MapX = 0
+			player.MapY = 0
+
+			return player, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // NextPlayer returns the next current player.
