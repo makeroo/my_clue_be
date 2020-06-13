@@ -115,7 +115,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 			Header: MessageHeader{
 				Type: MessageNotifyGameState,
 			},
-			Body: game.FullState(),
+			Body: game.FullState(req.UserIO.player.PlayerID),
 		}
 	}
 

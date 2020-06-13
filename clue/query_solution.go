@@ -19,13 +19,6 @@ func HandleQuerySolutionRequest(server *Server, req *Request) {
 		return
 	}
 
-	message := NotifyGameState{
-		State:     game.state,
-		Character: game.queryCharacter,
-		Room:      game.queryRoom,
-		Weapon:    game.queryWeapon,
-	}
-
 	player, err := game.QuerySolution(querySolution.Character, querySolution.Weapon)
 
 	if err != nil {
@@ -34,7 +27,13 @@ func HandleQuerySolutionRequest(server *Server, req *Request) {
 		return
 	}
 
-	message.AnsweringPlayer = game.Players[game.queryingPlayer].PlayerID
+	message := NotifyGameState{
+		State:           game.state,
+		Character:       game.queryCharacter,
+		Room:            game.queryRoom,
+		Weapon:          game.queryWeapon,
+		AnsweringPlayer: game.Players[game.answeringPlayer].PlayerID,
+	}
 
 	if player != nil {
 		message.PlayerPositions = append(message.PlayerPositions, PlayerPosition{

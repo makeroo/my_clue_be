@@ -19,13 +19,13 @@ func HandleRevealRequest(server *Server, req *Request) {
 		return
 	}
 
-	if req.UserIO.player.PlayerID != game.queryingPlayer {
+	if req.UserIO.player.PlayerID != game.Players[game.answeringPlayer].PlayerID {
 		server.sendError(req, NotYourTurn)
 
 		return
 	}
 
-	matched, err := game.Reveal(reveal.Card)
+	err = game.Reveal(reveal.Card)
 
 	if err != nil {
 		server.sendError(req, err.Error())
@@ -37,17 +37,35 @@ func HandleRevealRequest(server *Server, req *Request) {
 		State: game.state,
 	}
 
+	var skipPlayer *Player = nil
+	currentPlayer := game.Players[game.currentPlayer]
+
 	if game.state == GameStateTrySolution {
-		message.Matched = matched
+		message.Revealed = game.Revealed
+
+		skipPlayer = currentPlayer
+
+		if currentPlayer.UserIO != nil {
+			messageWithRevealedCard := message
+
+			messageWithRevealedCard.RevealedCard = game.RevealedCard
+
+			currentPlayer.UserIO.send <- MessageFrame{
+				Header: MessageHeader{
+					Type: MessageNotifyGameState,
+				},
+				Body: messageWithRevealedCard,
+			}
+		}
 
 	} else {
-		message.AnsweringPlayer = game.Players[game.queryingPlayer].PlayerID
+		message.AnsweringPlayer = game.Players[game.answeringPlayer].PlayerID
 		message.Character = game.queryCharacter
 		message.Room = game.queryRoom
 		message.Weapon = game.queryWeapon
 	}
 
-	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {
+	server.notifyPlayers(game, skipPlayer, MessageNotifyGameState, func(player *Player) interface{} {
 		return message
 	})
 }

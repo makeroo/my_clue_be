@@ -217,7 +217,7 @@ type PlayerPosition struct {
 // happens.
 type NotifyGameState struct {
 	State         State `json:"state"`
-	CurrentPlayer int   `json:"current_player"`
+	CurrentPlayer int   `json:"current_player,omitempty"`
 
 	Dice1          int `json:"dice1,omitempty"`
 	Dice2          int `json:"dice2,omitempty"`
@@ -229,7 +229,8 @@ type NotifyGameState struct {
 	Character       Card `json:"character,omitempty"`
 	Room            Card `json:"room,omitempty"`
 	Weapon          Card `json:"weapon,omitempty"`
-	Matched         bool `json:"matched,omitempty"`
+	Revealed        bool `json:"revealed,omitempty"`
+	RevealedCard    Card `json:"revealed_card,omitempty"`
 }
 
 // MessageFrame is a message going from fe to be or vicersa.

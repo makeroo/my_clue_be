@@ -179,15 +179,18 @@ type Game struct {
 	solutionWeapon    Card
 	solutionCharacter Card
 
-	state          State
-	currentPlayer  int
-	dice1          int
-	dice2          int
-	remainingSteps int
-	queryRoom      Card
-	queryWeapon    Card
-	queryCharacter Card
-	queryingPlayer int
+	state           State
+	currentPlayer   int
+	dice1           int
+	dice2           int
+	remainingSteps  int
+	queryRoom       Card
+	queryWeapon     Card
+	queryCharacter  Card
+	answeringPlayer int
+
+	Revealed     bool
+	RevealedCard Card
 
 	secretPassages [][2]Card
 }
@@ -429,7 +432,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 		if room == player.Room {
 			// the player choose to remain in the same room she/he was in
 			game.state = GameStateQuery
-			game.queryingPlayer = -1
+			game.answeringPlayer = -1
 
 			return nil
 		}
@@ -446,7 +449,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 			player.MapY = 0
 
 			game.state = GameStateQuery
-			game.queryingPlayer = -1
+			game.answeringPlayer = -1
 
 			return nil
 		}
@@ -465,7 +468,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 		player.MapY = 0
 
 		game.state = GameStateQuery
-		game.queryingPlayer = -1
+		game.answeringPlayer = -1
 
 	} else if IsRoom(player.Room) {
 		if !game.IsValidPosition(mapX, mapY) {
@@ -518,7 +521,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) error {
 
 		if game.remainingSteps == 0 {
 			game.state = GameStateQuery
-			game.queryingPlayer = -1
+			game.answeringPlayer = -1
 		}
 	}
 
@@ -541,7 +544,7 @@ func IsPositionAdjacent(x1, y1, x2, y2 int) bool {
 // IsOccupied checks if position is occupied by a player.
 func (game *Game) IsOccupied(mapX, mapY int) *Player {
 	for _, p := range game.Players {
-		if p.MapX == mapX || p.MapY == mapY {
+		if p.MapX == mapX && p.MapY == mapY {
 			return p
 		}
 	}
@@ -562,7 +565,7 @@ func (game *Game) IsSecretPassage(from, to Card) bool {
 
 // QuerySolution starts a query solution process.
 func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
-	if game.state != GameStateQuery || game.queryingPlayer != -1 {
+	if game.state != GameStateQuery || game.answeringPlayer != -1 {
 		return nil, errors.New(IllegalState)
 	}
 
@@ -574,7 +577,7 @@ func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 	game.queryCharacter = character
 	game.queryRoom = room
 	game.queryWeapon = weapon
-	game.queryingPlayer = game.NextPlayer()
+	game.answeringPlayer = game.NextPlayer()
 
 	for _, player := range game.Players {
 		if Card(player.Character) == character {
@@ -605,40 +608,44 @@ func (game *Game) NextPlayer() int {
 }
 
 // Reveal processes query solution answer.
-func (game *Game) Reveal(card Card) (bool, error) {
-	answeringPlayer := game.Players[game.queryingPlayer]
+func (game *Game) Reveal(card Card) error {
+	answeringPlayer := game.Players[game.answeringPlayer]
 
 	if IsCard(card) {
 		if !answeringPlayer.HasCard(card) {
-			return false, errors.New(NotYourCard)
+			return errors.New(NotYourCard)
 		}
 
 		game.state = GameStateTrySolution
+		game.Revealed = true
+		game.RevealedCard = card
 
-		return true, nil
+		return nil
 
 	}
 
-	currentPlayer := game.Players[game.currentPlayer]
+	//currentPlayer := game.Players[game.currentPlayer]
 
-	if currentPlayer.HasCard(game.queryCharacter) || currentPlayer.HasCard(game.queryRoom) || currentPlayer.HasCard(game.queryWeapon) {
-		return false, errors.New(MustShowACard)
+	if answeringPlayer.HasCard(game.queryCharacter) || answeringPlayer.HasCard(game.queryRoom) || answeringPlayer.HasCard(game.queryWeapon) {
+		return errors.New(MustShowACard)
 	}
 
-	game.queryingPlayer = game.NextPlayer()
+	game.answeringPlayer = game.NextPlayer()
 
-	if game.queryingPlayer == game.currentPlayer {
+	if game.answeringPlayer == game.currentPlayer {
+		game.Revealed = false
+		game.RevealedCard = 0
 		game.state = GameStateTrySolution
 	}
 
-	return false, nil
+	return nil
 }
 
 // Pass skips to the next turn.
 func (game *Game) Pass() error {
 	switch game.state {
 	case GameStateQuery:
-		if game.queryingPlayer != -1 {
+		if game.answeringPlayer != -1 {
 			return errors.New(NotYourTurn)
 		}
 
@@ -692,7 +699,7 @@ func (game *Game) GameStartedMessage(player *Player) NotifyGameStarted {
 
 // FullState return a fully compiled NotifyGameState so that web client can reinitialize from stratch.
 // Usually NotifyGameState contains only incremental changes.
-func (game *Game) FullState() NotifyGameState {
+func (game *Game) FullState(askingPlayer int) NotifyGameState {
 	r := NotifyGameState{
 		State:         game.state,
 		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
@@ -719,10 +726,16 @@ func (game *Game) FullState() NotifyGameState {
 		r.Room = game.queryRoom
 		r.Weapon = game.queryWeapon
 		r.Character = game.queryCharacter
-		r.AnsweringPlayer = game.queryingPlayer
+		if game.answeringPlayer >= 0 {
+			r.AnsweringPlayer = game.Players[game.answeringPlayer].PlayerID
+		}
 		break
 	case GameStateTrySolution:
 		r.PlayerPositions = game.PlayerPositions()
+		r.Revealed = game.Revealed
+		if askingPlayer == game.Players[game.currentPlayer].PlayerID {
+			r.RevealedCard = game.RevealedCard
+		}
 		break
 	case GameEnded:
 		// nop

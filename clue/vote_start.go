@@ -37,7 +37,7 @@ func HandleVoteStartRequest(server *Server, req *Request) {
 		return game.GameStartedMessage(player)
 	})
 
-	newTurn := game.FullState()
+	newTurn := game.FullState(req.UserIO.player.PlayerID)
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {
 		return newTurn
