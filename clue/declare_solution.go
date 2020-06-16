@@ -27,18 +27,18 @@ func HandleDeclareSolutionRequest(server *Server, req *Request) {
 		return
 	}
 
+	umessage := req.UserIO.player.State()
+
+	server.notifyPlayers(game, nil, MessageNotifyUserState, func (player *Player) interface{} {
+		return umessage
+	})
+
 	message := NotifyGameState{
 		State: game.state,
 	}
 
 	if game.state != GameEnded {
 		message.CurrentPlayer = game.Players[game.currentPlayer].PlayerID
-
-		umessage := req.UserIO.player.State()
-
-		server.notifyPlayers(game, nil, MessageNotifyUserState, func (player *Player) interface{} {
-			return umessage
-		})
 
 	} else {
 		message.Room = game.solutionRoom

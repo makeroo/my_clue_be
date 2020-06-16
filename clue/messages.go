@@ -120,6 +120,14 @@ type GameSynopsis struct {
 	Character int          `json:"character,omitempty"`
 	PlayerID  int          `json:"player_id"`
 	Others    []GamePlayer `json:"others,omitempty"`
+
+	// the properties below are filled when the game has ended
+	// if winner (a player ID) is not defied (ie. it is 0) then
+	// all players failed and the game is a draw
+	Winner            int  `json:"winner,omitempty"`
+	SolutionCharacter Card `json:"solution_character,omitempty"`
+	SolutionRoom      Card `json:"solution_room,omitempty"`
+	SolutionWeapon    Card `json:"solution_weapon,omitempty"`
 }
 
 // CreateGameResponse describes a create game response.
@@ -194,7 +202,7 @@ type NotifyUserState struct {
 	Name              string `json:"name,omitempty"`
 	Character         int    `json:"character,omitempty"`
 	Online            bool   `json:"online"`
-	DeclaredRoom      Card   `json:"declared_card,omitempty"`
+	DeclaredRoom      Card   `json:"declared_room,omitempty"`
 	DeclaredWeapon    Card   `json:"declared_weapon,omitempty"`
 	DeclaredCharacter Card   `json:"declared_character,omitempty"`
 }
@@ -229,11 +237,15 @@ type NotifyGameState struct {
 	PlayerPositions []PlayerPosition `json:"player_positions,omitempty"`
 
 	AnsweringPlayer int  `json:"answering_player,omitempty"`
-	Character       Card `json:"character,omitempty"`
-	Room            Card `json:"room,omitempty"`
-	Weapon          Card `json:"weapon,omitempty"`
 	Revealed        bool `json:"revealed,omitempty"`
 	RevealedCard    Card `json:"revealed_card,omitempty"`
+
+	// the properties below have different meaning depending on game state
+	// if state is query or try solution then these are the current player's query
+	// if state is ended then these are the game solution
+	Character Card `json:"character,omitempty"`
+	Room      Card `json:"room,omitempty"`
+	Weapon    Card `json:"weapon,omitempty"`
 }
 
 // MessageFrame is a message going from fe to be or vicersa.

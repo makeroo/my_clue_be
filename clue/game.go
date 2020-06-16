@@ -619,9 +619,10 @@ func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 // NextTurnPlayer returns the next current player.
 func (game *Game) NextTurnPlayer() (int, error) {
 	c := game.currentPlayer
+	next := c
 
 	for {
-		next := (game.currentPlayer + 1) % len(game.Players)
+		next = (next + 1) % len(game.Players)
 
 		if next == c {
 			return 0, errors.New("draw")
@@ -728,6 +729,17 @@ func (game *Game) CheckSolution(character, room, weapon Card) error {
 	return nil
 }
 
+// HasWinner returns true if the game ended and it is not a draw. In this case the current player is the winner.
+func (game *Game) HasWinner () bool {
+	if game.state != GameEnded {
+		return false
+	}
+
+	player := game.Players[game.currentPlayer]
+
+	return player.DeclaredCharacter == game.solutionCharacter && player.DeclaredRoom == game.solutionRoom && player.DeclaredWeapon == game.solutionWeapon
+}
+
 // GameStartedMessage return a NotifyGameStarted message so that web client can reinitialize from scratch.
 func (game *Game) GameStartedMessage(player *Player) NotifyGameStarted {
 	var playersOrder []int
@@ -740,6 +752,48 @@ func (game *Game) GameStartedMessage(player *Player) NotifyGameStarted {
 		Deck:         player.Deck,
 		PlayersOrder: playersOrder,
 	}
+}
+
+// Synopsis returns a game synopsis to fill sign in response.
+func (game *Game) Synopsis(targetPlayerID int) GameSynopsis {
+	var others []GamePlayer = nil
+	var targetPlayer *Player
+
+	for _, other := range game.Players {
+		if other.PlayerID == targetPlayerID {
+			targetPlayer = other
+
+			continue
+		}
+
+		others = append(others, GamePlayer{
+			Character: other.Character,
+			PlayerID:  other.PlayerID,
+			Name:      other.User.Name,
+			Online:    other.UserIO != nil,
+		})
+	}
+
+	synopsis := GameSynopsis{
+		GameID:    game.GameID,
+		Others:    others,
+	}
+
+	if targetPlayer != nil {
+		synopsis.Character = targetPlayer.Character
+		synopsis.PlayerID = targetPlayer.PlayerID
+	}
+
+	if game.state == GameEnded {
+		if game.HasWinner() {
+			synopsis.Winner = game.Players[game.currentPlayer].PlayerID
+			synopsis.SolutionCharacter = game.solutionCharacter
+			synopsis.SolutionRoom = game.solutionRoom
+			synopsis.SolutionWeapon = game.solutionWeapon
+		}
+	}
+
+	return synopsis
 }
 
 // FullState return a fully compiled NotifyGameState so that web client can reinitialize from stratch.
@@ -777,6 +831,10 @@ func (game *Game) FullState(askingPlayer int) NotifyGameState {
 		break
 	case GameStateTrySolution:
 		r.PlayerPositions = game.PlayerPositions()
+
+		r.Room = game.queryRoom
+		r.Weapon = game.queryWeapon
+		r.Character = game.queryCharacter
 		r.Revealed = game.Revealed
 		if askingPlayer == game.Players[game.currentPlayer].PlayerID {
 			r.RevealedCard = game.RevealedCard

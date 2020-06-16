@@ -492,27 +492,7 @@ func (user *User) RunningGames() []GameSynopsis {
 	var runningGames []GameSynopsis = nil
 
 	for _, player := range user.joinedGames {
-		var others []GamePlayer = nil
-
-		for _, other := range player.Game.Players {
-			if other.PlayerID == player.PlayerID {
-				continue
-			}
-
-			others = append(others, GamePlayer{
-				Character: other.Character,
-				PlayerID:  other.PlayerID,
-				Name:      other.User.Name,
-				Online:    other.UserIO != nil,
-			})
-		}
-
-		runningGames = append(runningGames, GameSynopsis{
-			GameID:    player.Game.GameID,
-			Character: player.Character,
-			PlayerID:  player.PlayerID,
-			Others:    others,
-		})
+		runningGames = append(runningGames, player.Game.Synopsis(player.PlayerID))
 	}
 
 	return runningGames
