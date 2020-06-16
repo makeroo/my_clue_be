@@ -125,11 +125,6 @@ func HandleSignInRequest(server *Server, req *Request) {
 	}
 
 	server.broadcast(user, MessageNotifyUserState, func(me *Player, target *Player) interface{} {
-		return NotifyUserState{
-			PlayerID:  me.PlayerID,
-			Name:      user.Name,
-			Character: me.Character,
-			Online:    true,
-		}
+		return me.State()
 	})
 }

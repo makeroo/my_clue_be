@@ -190,10 +190,13 @@ ie. it is 0 for all players that haven't selected a character yet.
 PlayerID is unique only in a game.
 */
 type NotifyUserState struct {
-	PlayerID  int    `json:"player_id"`
-	Name      string `json:"name,omitempty"`
-	Character int    `json:"character,omitempty"`
-	Online    bool   `json:"online"`
+	PlayerID          int    `json:"player_id"`
+	Name              string `json:"name,omitempty"`
+	Character         int    `json:"character,omitempty"`
+	Online            bool   `json:"online"`
+	DeclaredRoom      Card   `json:"declared_card,omitempty"`
+	DeclaredWeapon    Card   `json:"declared_weapon,omitempty"`
+	DeclaredCharacter Card   `json:"declared_character,omitempty"`
 }
 
 // NotifyGameStarted is sent to all players of a table to signal that

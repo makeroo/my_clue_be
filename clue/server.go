@@ -256,10 +256,7 @@ func (server *Server) removeClient(userIO *UserIO) {
 				fmt.Println("user unreachable: ", user.Token)
 
 				server.broadcast(user, MessageNotifyUserState, func(me *Player, target *Player) interface{} {
-					return NotifyUserState{
-						PlayerID: me.PlayerID,
-						Online:   false,
-					}
+					return me.State()
 				})
 			}
 

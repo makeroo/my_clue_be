@@ -33,9 +33,17 @@ func HandleDeclareSolutionRequest(server *Server, req *Request) {
 
 	if game.state != GameEnded {
 		message.CurrentPlayer = game.Players[game.currentPlayer].PlayerID
-		message.Character = declareSolution.Character
-		message.Room = declareSolution.Room
-		message.Weapon = declareSolution.Weapon
+
+		umessage := req.UserIO.player.State()
+
+		server.notifyPlayers(game, nil, MessageNotifyUserState, func (player *Player) interface{} {
+			return umessage
+		})
+
+	} else {
+		message.Room = game.solutionRoom
+		message.Character = game.solutionCharacter
+		message.Weapon = game.solutionWeapon
 	}
 
 	server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {

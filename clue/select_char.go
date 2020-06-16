@@ -24,11 +24,7 @@ func HandleSelectCharacterRequest(server *Server, req *Request) {
 		return
 	}
 
-	message := NotifyUserState{
-		PlayerID:  req.UserIO.player.PlayerID,
-		Character: selectCharacter.Character,
-		Online:    true,
-	}
+	message := req.UserIO.player.State()
 
 	server.notifyPlayers(game, nil, MessageNotifyUserState, func(player *Player) interface{} {
 		return message

@@ -82,12 +82,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 	players := make([]NotifyUserState, len(game.Players))
 
 	for i, player := range game.Players {
-		userState := NotifyUserState{
-			PlayerID:  player.PlayerID,
-			Character: player.Character,
-			Online:    player.UserIO != nil,
-			Name:      player.User.Name,
-		}
+		userState := player.State()
 
 		players[i] = userState
 	}
@@ -119,12 +114,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 		}
 	}
 
-	message := NotifyUserState{
-		PlayerID:  req.UserIO.player.PlayerID,
-		Name:      user.Name,
-		Character: req.UserIO.player.Character,
-		Online:    true,
-	}
+	message := req.UserIO.player.State()
 
 	server.notifyPlayers(game, req.UserIO.player, MessageNotifyUserState, func(player *Player) interface{} {
 		return message

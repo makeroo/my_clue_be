@@ -166,7 +166,27 @@ type Player struct {
 
 	// FailedSolution is false until the player declared a solution
 	// that is wrong.
-	FailedSolution bool
+	DeclaredRoom      Card
+	DeclaredWeapon    Card
+	DeclaredCharacter Card
+}
+
+// State return the player state to be notified to the f/e.
+func (player *Player) State() NotifyUserState {
+	return NotifyUserState{
+		PlayerID:          player.PlayerID,
+		Name:              player.User.Name,
+		Character:         player.Character,
+		Online:            player.UserIO != nil,
+		DeclaredRoom:      player.DeclaredRoom,
+		DeclaredWeapon:    player.DeclaredWeapon,
+		DeclaredCharacter: player.DeclaredCharacter,
+	}
+}
+
+// FailedSolution return wether the player is in play or not.
+func (player *Player) FailedSolution() bool {
+	return IsCard(player.DeclaredRoom)
 }
 
 // Game is a clue table. A user can join multiple tables.
@@ -577,7 +597,7 @@ func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 	game.queryCharacter = character
 	game.queryRoom = room
 	game.queryWeapon = weapon
-	game.answeringPlayer = game.NextPlayer()
+	game.answeringPlayer = game.NextAnsweringPlayer(game.currentPlayer)
 
 	for _, player := range game.Players {
 		if Card(player.Character) == character {
@@ -596,15 +616,26 @@ func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 	return nil, nil
 }
 
-// NextPlayer returns the next current player.
-func (game *Game) NextPlayer() int {
+// NextTurnPlayer returns the next current player.
+func (game *Game) NextTurnPlayer() (int, error) {
+	c := game.currentPlayer
+
 	for {
 		next := (game.currentPlayer + 1) % len(game.Players)
 
-		if !game.Players[next].FailedSolution {
-			return next
+		if next == c {
+			return 0, errors.New("draw")
+		}
+
+		if !game.Players[next].FailedSolution() {
+			return next, nil
 		}
 	}
+}
+
+// NextAnsweringPlayer returns the player due to try to reveal a card after from player.
+func (game *Game) NextAnsweringPlayer(from int) int {
+	return (from + 1) % len(game.Players)
 }
 
 // Reveal processes query solution answer.
@@ -630,7 +661,7 @@ func (game *Game) Reveal(card Card) error {
 		return errors.New(MustShowACard)
 	}
 
-	game.answeringPlayer = game.NextPlayer()
+	game.answeringPlayer = game.NextAnsweringPlayer(game.answeringPlayer)
 
 	if game.answeringPlayer == game.currentPlayer {
 		game.Revealed = false
@@ -654,7 +685,15 @@ func (game *Game) Pass() error {
 
 	case GameStateTrySolution:
 		game.state = GameStateNewTurn
-		game.currentPlayer = game.NextPlayer()
+		nextPlayer, err := game.NextTurnPlayer()
+
+		if err != nil {
+			// this can't happen
+			return err
+		}
+
+		game.currentPlayer = nextPlayer
+
 		return nil
 
 	default:
@@ -668,16 +707,22 @@ func (game *Game) CheckSolution(character, room, weapon Card) error {
 		return errors.New(IllegalState)
 	}
 
+	player := game.Players[game.currentPlayer]
+	player.DeclaredCharacter = character
+	player.DeclaredRoom = room
+	player.DeclaredWeapon = weapon
+
 	if game.solutionCharacter == character && game.solutionRoom == room && game.solutionWeapon == weapon {
+		// player won
 		game.state = GameEnded
 
-	} else {
-		player := game.Players[game.currentPlayer]
-
-		player.FailedSolution = true
-
+	} else if nextPlayer, err := game.NextTurnPlayer(); err == nil {
 		game.state = GameStateNewTurn
-		game.currentPlayer = game.NextPlayer()
+		game.currentPlayer = nextPlayer
+
+	} else {
+		// all players lost
+		game.state = GameEnded
 	}
 
 	return nil
@@ -713,7 +758,7 @@ func (game *Game) FullState(askingPlayer int) NotifyGameState {
 		r.PlayerPositions = game.PlayerPositions()
 		break
 	case GameStateCard:
-		// nop
+		// TODO
 		break
 	case GameStateMove:
 		r.PlayerPositions = game.PlayerPositions()
@@ -738,7 +783,9 @@ func (game *Game) FullState(askingPlayer int) NotifyGameState {
 		}
 		break
 	case GameEnded:
-		// nop
+		r.Room = game.solutionRoom
+		r.Weapon = game.solutionWeapon
+		r.Character = game.solutionCharacter
 		break
 	}
 
