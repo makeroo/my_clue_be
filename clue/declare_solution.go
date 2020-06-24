@@ -27,20 +27,34 @@ func HandleDeclareSolutionRequest(server *Server, req *Request) {
 		return
 	}
 
+	// first of all, req user state has changed, whether she/he found the solution or not
+
 	umessage := req.UserIO.player.State()
 
-	server.notifyPlayers(game, nil, MessageNotifyUserState, func (player *Player) interface{} {
+	server.notifyPlayers(game, nil, MessageNotifyUserState, func(player *Player) interface{} {
 		return umessage
 	})
 
-	message := NotifyGameState{
-		State: game.state,
+	// then, if the req user failed, the game could be ended, if she/he was the last but one to fail
+
+	probablyWinner := game.Players[game.currentPlayer]
+
+	if game.state == GameEnded && probablyWinner.PlayerID != req.UserIO.player.PlayerID {
+		umessage = probablyWinner.State()
+
+		server.notifyPlayers(game, nil, MessageNotifyUserState, func(player *Player) interface{} {
+			return umessage
+		})
 	}
 
-	if game.state != GameEnded {
-		message.CurrentPlayer = game.Players[game.currentPlayer].PlayerID
+	// finally, notify updated game state
 
-	} else {
+	message := NotifyGameState{
+		State:         game.state,
+		CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
+	}
+
+	if game.state == GameEnded {
 		message.Room = game.solutionRoom
 		message.Character = game.solutionCharacter
 		message.Weapon = game.solutionWeapon

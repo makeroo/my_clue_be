@@ -616,8 +616,8 @@ func (game *Game) QuerySolution(character, weapon Card) (*Player, error) {
 	return nil, nil
 }
 
-// NextTurnPlayer returns the next current player.
-func (game *Game) NextTurnPlayer() (int, error) {
+// nextTurnPlayer returns the next current player.
+func (game *Game) nextTurnPlayer() (int, bool) {
 	c := game.currentPlayer
 	next := c
 
@@ -625,11 +625,11 @@ func (game *Game) NextTurnPlayer() (int, error) {
 		next = (next + 1) % len(game.Players)
 
 		if next == c {
-			return 0, errors.New("draw")
+			return 0, true
 		}
 
 		if !game.Players[next].FailedSolution() {
-			return next, nil
+			return next, false
 		}
 	}
 }
@@ -686,14 +686,17 @@ func (game *Game) Pass() error {
 
 	case GameStateTrySolution:
 		game.state = GameStateNewTurn
-		nextPlayer, err := game.NextTurnPlayer()
 
-		if err != nil {
-			// this can't happen
-			return err
-		}
+		nextPlayer, _ := game.nextTurnPlayer()
 
 		game.currentPlayer = nextPlayer
+
+		game.queryRoom = 0
+		game.queryWeapon = 0
+		game.queryCharacter = 0
+
+		game.Revealed = false
+		game.RevealedCard = 0
 
 		return nil
 
@@ -717,20 +720,32 @@ func (game *Game) CheckSolution(character, room, weapon Card) error {
 		// player won
 		game.state = GameEnded
 
-	} else if nextPlayer, err := game.NextTurnPlayer(); err == nil {
-		game.state = GameStateNewTurn
+	} else {
+		nextPlayer, _ := game.nextTurnPlayer()
+
 		game.currentPlayer = nextPlayer
 
-	} else {
-		// all players lost
-		game.state = GameEnded
+		// check if nextPlayer is the last one who has not failed to find the solution
+
+		if _, gameEnded := game.nextTurnPlayer(); gameEnded {
+			game.state = GameEnded
+
+			player = game.Players[game.currentPlayer]
+
+			player.DeclaredCharacter = game.solutionCharacter
+			player.DeclaredRoom = game.solutionRoom
+			player.DeclaredWeapon = game.solutionWeapon
+
+		} else {
+			game.state = GameStateNewTurn
+		}
 	}
 
 	return nil
 }
 
 // HasWinner returns true if the game ended and it is not a draw. In this case the current player is the winner.
-func (game *Game) HasWinner () bool {
+func (game *Game) HasWinner() bool {
 	if game.state != GameEnded {
 		return false
 	}
@@ -775,8 +790,8 @@ func (game *Game) Synopsis(targetPlayerID int) GameSynopsis {
 	}
 
 	synopsis := GameSynopsis{
-		GameID:    game.GameID,
-		Others:    others,
+		GameID: game.GameID,
+		Others: others,
 	}
 
 	if targetPlayer != nil {
