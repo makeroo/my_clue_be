@@ -10,7 +10,7 @@ func StringWithCharset(lrand *rand.Rand, length int, charset string) string {
 	b := make([]byte, length)
 
 	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+		b[i] = charset[lrand.Intn(len(charset))]
 	}
 
 	return string(b)
