@@ -1,6 +1,9 @@
 package clue
 
-import "log"
+import (
+	"log"
+	"strings"
+)
 
 // HandleJoinGameRequest processes join game requests.
 func HandleJoinGameRequest(server *Server, req *Request) {
@@ -27,7 +30,7 @@ func HandleJoinGameRequest(server *Server, req *Request) {
 		return
 	}
 
-	game := server.games[joinGame.GameID]
+	game := server.games[strings.ToUpper(joinGame.GameID)]
 
 	if game == nil {
 		server.sendError(req, UnknownGame)
