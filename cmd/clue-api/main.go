@@ -45,7 +45,7 @@ func main() {
 
 	server.Run()
 
-	http.Handle("/ws", logRequest(server))
+	http.Handle("/clue/ws", logRequest(server))
 
 	log.Println("My Cluedo B/E up and running")
 	// TODO: log version
