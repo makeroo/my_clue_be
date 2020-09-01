@@ -1,9 +1,8 @@
 package web
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/makeroo/my_clue_be/internal/platform/data"
 	"github.com/makeroo/my_clue_be/internal/platform/game"
 )
 
@@ -31,7 +30,7 @@ func (server *Server) SignIn(userIO *UserIO, name string) (*User, string) {
 
 	server.removeConnectedUser(userIO)
 
-	fmt.Println("new user: name=", user.name)
+	log.Println("new user: name=", user.name)
 
 	return user, user.token
 }
@@ -72,17 +71,15 @@ func (server *Server) Authenticate(userIO *UserIO, name string, token string) (*
 			user.name = name
 		}
 
-		// fmt.Println("user back online: token=", token)
+		// log.Println("user back online: token=", token)
 	}
 
 	server.removeConnectedUser(userIO)
 
+	// log.Println("io before adding", user.io)
+
 	userIO.user = user
 	user.io = append(user.io, userIO)
-
-	server.broadcast(user, data.MessageNotifyUserState, func(me *gameUser, target *gameUser) interface{} {
-		return me.State()
-	})
 
 	return user, nil
 }

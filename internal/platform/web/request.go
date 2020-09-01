@@ -1,6 +1,8 @@
 package web
 
-import "github.com/makeroo/my_clue_be/internal/platform/data"
+import (
+	"github.com/makeroo/my_clue_be/internal/platform/data"
+)
 
 // Request is an incoming request to be served.
 type Request struct {
@@ -13,6 +15,8 @@ type Request struct {
 
 // SendError returns an error message to the user.
 func (req *Request) SendError(err error) {
+	// log.Println("sending err", req.UserIO, err)
+
 	req.UserIO.send <- data.MessageFrame{
 		Header: data.MessageHeader{
 			Type:  data.MessageError,
@@ -27,6 +31,8 @@ func (req *Request) SendError(err error) {
 
 // SendMessage returns a response to the user.
 func (req *Request) SendMessage(messageType data.MessageType, body interface{}) {
+	//log.Println("sending msg", req.UserIO, messageType)
+
 	req.UserIO.send <- data.MessageFrame{
 		Header: data.MessageHeader{
 			Type:  messageType,

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -143,11 +142,17 @@ func (server *Server) Run() {
 		for {
 			select {
 			case ws := <-server.register:
+				//log.Println("client to be added")
 				server.addClient(ws)
+				//log.Println("client added")
 			case userIO := <-server.unregister:
+				//log.Println("client to be removed", userIO)
 				server.removeClient(userIO)
+				//log.Println("client removed", userIO)
 			case req := <-server.process:
+				//log.Println("request to be handled", req, req.UserIO)
 				server.handleRequest(req)
+				//log.Println("request handled", req)
 			}
 		}
 	}()
@@ -191,7 +196,7 @@ func (server *Server) removeClient(userIO *UserIO) {
 		return
 	}
 
-	fmt.Println("user disconnected: ", user.token)
+	log.Println("user disconnected: ", user.token)
 
 	if userIO.player != nil {
 		sg := server.games[userIO.player.Game().ID()]
@@ -203,7 +208,7 @@ func (server *Server) removeClient(userIO *UserIO) {
 			Online:    false,
 		}
 
-		sg.notifyPlayers(nil, data.MessageNotifyUserState, func(target *game.Player) interface{} {
+		sg.notifyPlayers(userIO.player, data.MessageNotifyUserState, func(target *game.Player) interface{} {
 			return userState
 		})
 	}
@@ -291,34 +296,6 @@ func (server *Server) removeConnectedUser(userIO *UserIO) {
 	}
 }
 
-func (server *Server) broadcast(user *User, message data.MessageType, messageBuilder func(me *gameUser, target *gameUser) interface{}) {
-	if user.joinedGames == nil {
-		return
-	}
-
-	for _, me := range user.joinedGames {
-		g := me.player.Game()
-		sg := server.games[g.ID()]
-
-		for _, target := range sg.players {
-			//if target == player {
-			//	continue
-			//}
-
-			if target.io == nil {
-				return
-			}
-
-			target.io.send <- data.MessageFrame{
-				Header: data.MessageHeader{
-					Type: message,
-				},
-				Body: messageBuilder(me, target),
-			}
-		}
-	}
-}
-
 func (g *serverGame) notifyPlayers(skipPlayer *game.Player, message data.MessageType, messageBuilder func(player *game.Player) interface{}) {
 	for _, gu := range g.players {
 		if gu.player == skipPlayer {
@@ -328,6 +305,8 @@ func (g *serverGame) notifyPlayers(skipPlayer *game.Player, message data.Message
 		if gu.io == nil {
 			continue
 		}
+
+		//log.Println("notify msg gu", gu.io, message)
 
 		gu.io.send <- data.MessageFrame{
 			Header: data.MessageHeader{
@@ -420,12 +399,6 @@ func (userIO *UserIO) writePump(server *Server) {
 		select {
 		case message, ok := <-userIO.send:
 			ws.SetWriteDeadline(time.Now().Add(server.writeWait))
-			if !ok {
-				// The hub closed the channel.
-				ws.WriteJSON(message.Header) // TODO: handle error
-				ws.WriteJSON(message.Body)   // TODO: handle error
-				return
-			}
 
 			if err := ws.WriteJSON(message.Header); err != nil {
 				log.Println("user send failed: user=", user, "error=", err)
@@ -437,8 +410,14 @@ func (userIO *UserIO) writePump(server *Server) {
 				return
 			}
 
+			if !ok {
+				// The hub closed the channel.
+				return
+			}
+
 		case <-ticker.C:
 			ws.SetWriteDeadline(time.Now().Add(server.writeWait))
+
 			if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
