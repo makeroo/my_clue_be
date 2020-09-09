@@ -62,7 +62,7 @@ type Server struct {
 	maxGamesPerPlayer int
 
 	// All the games, starting, running or completed, this server knows of.
-	games map[string]serverGame
+	games map[string]*serverGame
 }
 
 // New builds a Server instance.
@@ -72,7 +72,7 @@ func New(upgrader *websocket.Upgrader, rand *rand.Rand) *Server {
 		rand:              rand,
 		signedUsers:       make(map[string]*User),
 		connectedUsers:    nil,
-		games:             make(map[string]serverGame),
+		games:             make(map[string]*serverGame),
 		register:          make(chan *websocket.Conn),
 		unregister:        make(chan *UserIO),
 		process:           make(chan *Request),
@@ -453,7 +453,7 @@ func (server *Server) NewGame(userIO *UserIO) (*game.Game, *game.Player, error) 
 		return nil, nil, err
 	}
 
-	sg := serverGame{
+	sg := &serverGame{
 		game: g,
 	}
 
@@ -554,7 +554,7 @@ func (server *Server) JoinGame(gameID string, userIO *UserIO) (*data.JoinGameRes
 
 			gu.io = userIO
 			userIO.player = gu.player
-			userIO.game = &sg
+			userIO.game = sg
 
 			rPlayer = gu.player
 
@@ -580,6 +580,7 @@ func (server *Server) JoinGame(gameID string, userIO *UserIO) (*data.JoinGameRes
 		sg.players = append(sg.players, gu)
 
 		userIO.player = rPlayer
+		userIO.game = sg
 		user.joinedGames = append(user.joinedGames, gu)
 	}
 
