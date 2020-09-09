@@ -308,7 +308,7 @@ func (server *Server) removeConnectedUser(userIO *UserIO) {
 func (g *serverGame) notifyPlayers(skipPlayer *game.Player, message data.MessageType, messageBuilder func(player *game.Player) interface{}) {
 	for _, gu := range g.players {
 		if gu.player == skipPlayer {
-			return
+			continue
 		}
 
 		if gu.io == nil {
