@@ -85,6 +85,7 @@ type GamePlayer struct {
 
 // GameSynopsis is a preview of a joined game.
 type GameSynopsis struct {
+	ID   string           `json:"game_id"`
 	Game game.StateUpdate `json:"game"`
 	//	Character game.Card     `json:"character,omitempty"`
 	MyID    game.PlayerID `json:"my_player_id"`
