@@ -48,27 +48,9 @@ func (*QuerySolutionHandler) Handle(server *web.Server, req *web.Request) {
 
 		return
 	}
-	/*
-		game.History = append(game.History, MoveRecord{
-			PlayerID: pla,
-		})
 
-			message := NotifyGameState{
-				State:           game.state,
-				Character:       game.queryCharacter,
-				Room:            game.queryRoom,
-				Weapon:          game.queryWeapon,
-				AnsweringPlayer: game.Players[game.answeringPlayer].PlayerID,
-			}
+	req.SendMessage(data.MessageEmptyResponse, nil)
 
-			if player != nil {
-				message.PlayerPositions = append(message.PlayerPositions, PlayerPosition{
-					PlayerID: player.PlayerID,
-					Room:     player.Room,
-					// map x/y are always 0
-				})
-			}
-	*/
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return record.AsMessageFor(player)
 	})

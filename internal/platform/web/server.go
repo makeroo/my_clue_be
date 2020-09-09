@@ -414,9 +414,11 @@ func (userIO *UserIO) writePump(server *Server) {
 				return
 			}
 
-			if err := ws.WriteJSON(message.Body); err != nil {
-				log.Println("user send failed: user=", user, "error=", err)
-				return
+			if message.Body != nil {
+				if err := ws.WriteJSON(message.Body); err != nil {
+					log.Println("user send failed: user=", user, "error=", err)
+					return
+				}
 			}
 
 			if !ok {

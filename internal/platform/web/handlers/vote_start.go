@@ -42,6 +42,8 @@ func (*VoteStartHandler) Handle(server *web.Server, req *web.Request) {
 		return
 	}
 
+	req.SendMessage(data.MessageEmptyResponse, nil)
+
 	if g == nil {
 		return
 	}

@@ -56,4 +56,6 @@ func (*SelectCharHandler) Handle(server *web.Server, req *web.Request) {
 	server.NotifyPlayers(g, nil, data.MessageNotifyUserState, func(player *game.Player) interface{} {
 		return newUserState
 	})
+
+	req.SendMessage(data.MessageEmptyResponse, nil)
 }

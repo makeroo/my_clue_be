@@ -38,6 +38,8 @@ func (*RollDicesHandler) Handle(server *web.Server, req *web.Request) {
 		return
 	}
 
+	req.SendMessage(data.MessageEmptyResponse, nil)
+
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return record.AsMessageFor(player)
 	})

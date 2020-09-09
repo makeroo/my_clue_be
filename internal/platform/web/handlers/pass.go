@@ -37,15 +37,8 @@ func (*PassHandler) Handle(server *web.Server, req *web.Request) {
 
 		return
 	}
-	/*
-		message := NotifyGameState{
-			State:         game.state,
-			CurrentPlayer: game.Players[game.currentPlayer].PlayerID,
-		}
 
-		server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {
-			return message
-		})*/
+	req.SendMessage(data.MessageEmptyResponse, nil)
 
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return record.AsMessageFor(player)

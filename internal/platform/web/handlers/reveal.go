@@ -48,39 +48,9 @@ func (*RevealHandler) Handle(server *web.Server, req *web.Request) {
 
 		return
 	}
-	/*
-		message := NotifyGameState{
-			State: game.state,
-		}
 
-		var skipPlayer *Player = nil
-		currentPlayer := game.Players[game.currentPlayer]
+	req.SendMessage(data.MessageEmptyResponse, nil)
 
-		if game.state == GameStateTrySolution {
-			message.Revealed = game.Revealed
-
-			skipPlayer = currentPlayer
-
-			if currentPlayer.UserIO != nil {
-				messageWithRevealedCard := message
-
-				messageWithRevealedCard.RevealedCard = game.RevealedCard
-
-				currentPlayer.UserIO.send <- MessageFrame{
-					Header: MessageHeader{
-						Type: MessageNotifyGameState,
-					},
-					Body: messageWithRevealedCard,
-				}
-			}
-
-		} else {
-			message.AnsweringPlayer = game.Players[game.answeringPlayer].PlayerID
-			message.Character = game.queryCharacter
-			message.Room = game.queryRoom
-			message.Weapon = game.queryWeapon
-		}
-	*/
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return record.AsMessageFor(player)
 	})

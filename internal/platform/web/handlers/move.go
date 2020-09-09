@@ -48,45 +48,9 @@ func (*MoveHandler) Handle(server *web.Server, req *web.Request) {
 
 		return
 	}
-	/*
-		if game.IsRoom(movingPlayer.Room) {
-			game.History = append(game.History, MoveRecord{
-				PlayerID:  movingPlayer.PlayerID,
-				timestamp: time.Now(),
-				move: &EnterRoomMove{
-					room: movingPlayer.Room,
-				},
-			})
-		} else {
-			game.History = append(game.History, MoveRecord{
-				PlayerID:  movingPlayer.PlayerID,
-				timestamp: time.Now(),
-				move: &MovingInTheHallwayMove{
-					mapX: movingPlayer.MapX,
-					mapY: movingPlayer.MapY,
-				},
-			})
-		}
 
-		message := NotifyGameState{
-			State:          game.state,
-			CurrentPlayer:  game.Players[game.currentPlayer].PlayerID,
-			RemainingSteps: game.remainingSteps,
+	req.SendMessage(data.MessageEmptyResponse, nil)
 
-			PlayerPositions: []PlayerPosition{
-				{
-					PlayerID: movingPlayer.PlayerID,
-					Room:     movingPlayer.Room,
-					MapX:     movingPlayer.MapX,
-					MapY:     movingPlayer.MapY,
-				},
-			},
-		}
-
-		server.notifyPlayers(game, nil, MessageNotifyGameState, func(player *Player) interface{} {
-			return message
-		})
-	*/
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return record.AsMessageFor(player)
 	})

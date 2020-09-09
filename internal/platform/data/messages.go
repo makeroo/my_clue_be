@@ -58,6 +58,9 @@ const (
 
 	// MessageError is a constant for error notification.
 	MessageError = "error"
+
+	// MessageEmptyResponse is used to complete a request.
+	MessageEmptyResponse = "empty"
 )
 
 // SignInRequest describes a sign in request.
