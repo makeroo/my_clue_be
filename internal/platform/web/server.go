@@ -201,6 +201,15 @@ func (server *Server) removeClient(userIO *UserIO) {
 	if userIO.player != nil {
 		sg := server.games[userIO.player.Game().ID()]
 
+		// find gameUser and reset
+
+		for _, p := range sg.players {
+			if p.io == userIO {
+				p.io = nil
+				break
+			}
+		}
+
 		userState := data.NotifyUserState{
 			ID:        userIO.player.ID(),
 			Name:      user.name,
@@ -492,6 +501,7 @@ func (server *Server) Synopsis(targetPlayer *gameUser) data.GameSynopsis {
 	}
 
 	synopsis := data.GameSynopsis{
+		ID:      g.ID(),
 		Game:    g.FullState(targetPlayer.player.ID()),
 		MyID:    targetPlayer.player.ID(),
 		Players: players,
@@ -544,6 +554,7 @@ func (server *Server) JoinGame(gameID string, userIO *UserIO) (*data.JoinGameRes
 
 			gu.io = userIO
 			userIO.player = gu.player
+			userIO.game = &sg
 
 			rPlayer = gu.player
 
@@ -560,12 +571,16 @@ func (server *Server) JoinGame(gameID string, userIO *UserIO) (*data.JoinGameRes
 			return nil, err
 		}
 
-		userIO.player = rPlayer
-		user.joinedGames = append(user.joinedGames, &gameUser{
+		gu := &gameUser{
 			user:   user,
 			io:     userIO,
 			player: rPlayer,
-		})
+		}
+
+		sg.players = append(sg.players, gu)
+
+		userIO.player = rPlayer
+		user.joinedGames = append(user.joinedGames, gu)
 	}
 
 	players := make([]data.NotifyUserState, len(sg.players))
