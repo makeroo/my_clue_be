@@ -30,7 +30,7 @@ func (position PawnPosition) InRoom() bool {
 
 // EnterRoom sets the pawn position inside the given room.
 // Note: room is not validated.
-func (position PawnPosition) EnterRoom(room Card) {
+func (position *PawnPosition) EnterRoom(room Card) {
 	position.Room = room
 	position.MapX = 0
 	position.MapY = 0
@@ -38,7 +38,7 @@ func (position PawnPosition) EnterRoom(room Card) {
 
 // MoveTo sets the pawn position to the given coords.
 // Note: mapX/Y are not validated.
-func (position PawnPosition) MoveTo(mapX, mapY int) {
+func (position *PawnPosition) MoveTo(mapX, mapY int) {
 	position.Room = 0
 	position.MapX = mapX
 	position.MapY = mapY
