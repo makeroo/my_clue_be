@@ -81,6 +81,7 @@ func (game *Game) ID() string {
 	return game.gameID
 }
 
+// Started return true if the game has started.
 func (game *Game) Started() bool {
 	return game.state != GameStateStarting
 }
@@ -304,7 +305,8 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 	}
 
 	player := game.players[game.currentPlayer]
-	var move PlayerPosition
+	var playerPosition PlayerPosition
+	var move2 Move
 
 	if IsRoom(room) {
 		if room == player.position.Room {
@@ -375,9 +377,13 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 
 		player.position.EnterRoom(room)
 
-		move = PlayerPosition{
+		playerPosition = PlayerPosition{
 			PlayerID:     player.id,
 			PawnPosition: player.position,
+		}
+
+		move2 = &EnterRoomMove{
+			Room: room,
 		}
 
 		game.state = GameStateQuery
@@ -403,9 +409,14 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 
 		player.position.MoveTo(mapX, mapY)
 
-		move = PlayerPosition{
+		playerPosition = PlayerPosition{
 			PlayerID:     player.id,
 			PawnPosition: player.position,
+		}
+
+		move2 = &MovingInTheHallwayMove{
+			MapX: mapX,
+			MapY: mapY,
 		}
 
 		game.remainingSteps--
@@ -422,7 +433,7 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 			return nil, IllegalMove
 		}
 
-		if p := game.IsOccupied(mapX, mapY); p != nil && p != player {
+		if game.IsOccupied(mapX, mapY) != nil {
 			return nil, IllegalMove
 		}
 
@@ -432,15 +443,20 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 
 		player.position.MoveTo(mapX, mapY)
 
-		move = PlayerPosition{
+		playerPosition = PlayerPosition{
 			PlayerID:     player.id,
 			PawnPosition: player.position,
+		}
+
+		move2 = &MovingInTheHallwayMove{
+			MapX: mapX,
+			MapY: mapY,
 		}
 
 		game.remainingSteps--
 
 		if game.remainingSteps == 0 {
-			game.state = GameStateQuery
+			game.state = GameStateTrySolution
 			game.answeringPlayer = -1
 		}
 	}
@@ -455,16 +471,13 @@ func (game *Game) Move(room Card, mapX int, mapY int) (*MoveRecord, error) {
 	record := &MoveRecord{
 		PlayerID:  player.id,
 		Timestamp: time.Now(),
-		Move: &MovingInTheHallwayMove{
-			MapX: player.position.MapX,
-			MapY: player.position.MapY,
-		},
+		Move:      move2,
 		StateDelta: StateUpdate{
 			State:           game.state,
 			AnsweringPlayer: answeringPlayer,
 			RemainingSteps:  game.remainingSteps,
 			Positions: []PlayerPosition{
-				move,
+				playerPosition,
 			},
 		},
 	}
@@ -744,9 +757,11 @@ func (game *Game) CheckSolution(character, room, weapon Card) (*MoveRecord, erro
 		PlayerID:  player.id,
 		Timestamp: time.Now(),
 		Move: &DeclareSolutionMove{
-			Character: character,
-			Room:      room,
-			Weapon:    weapon,
+			Declaration: Declaration{
+				Character: character,
+				Room:      room,
+				Weapon:    weapon,
+			},
 		},
 		StateDelta: StateUpdate{
 			State: game.state,
@@ -776,6 +791,24 @@ func (game *Game) PlayerTurnSequence() []PlayerID {
 	}
 
 	return playersOrder
+}
+
+// StartState returns the initial Cluedo game state.
+func (game *Game) StartState() StateUpdate {
+	var positions []PlayerPosition
+
+	for _, p := range game.players {
+		positions = append(positions, PlayerPosition{
+			PlayerID:     p.id,
+			PawnPosition: initialPositions[p.character],
+		})
+	}
+
+	return StateUpdate{
+		State:         GameStateNewTurn,
+		CurrentPlayer: game.players[0].id,
+		Positions:     positions,
+	}
 }
 
 // FullState return a fully compiled NotifyGameState so that web client can reinitialize from stratch.
@@ -849,6 +882,15 @@ func (game *Game) Players(mapPlayer func(player *Player)) {
 
 // History enumerate game move records invoking recordHandler on each of them.
 func (game *Game) History(recordHandler func(record MoveRecord)) {
+	firstPlayer := game.players[0]
+
+	recordHandler(MoveRecord{
+		PlayerID:   firstPlayer.ID(),
+		Timestamp:  time.Now(),
+		Move:       &StartMove{},
+		StateDelta: game.StartState(),
+	})
+
 	for _, record := range game.history {
 		recordHandler(*record)
 	}

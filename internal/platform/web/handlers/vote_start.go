@@ -59,10 +59,10 @@ func (*VoteStartHandler) Handle(server *web.Server, req *web.Request) {
 
 	server.NotifyPlayers(g, nil, data.MessageNotifyMoveRecord, func(player *game.Player) interface{} {
 		return game.MoveRecord{
-			PlayerID:  g.CurrentPlayer().ID(),
-			Timestamp: time.Now(),
-			//Move: nop,
-			StateDelta: g.FullState(player.ID()),
+			PlayerID:   g.CurrentPlayer().ID(),
+			Timestamp:  time.Now(),
+			Move:       &game.StartMove{},
+			StateDelta: g.StartState(),
 		}
 	})
 }
