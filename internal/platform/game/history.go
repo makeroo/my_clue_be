@@ -10,8 +10,10 @@ import (
 type MoveType int
 
 const (
+	// Start action.
+	Start MoveType = iota + 1
 	// RollDices action.
-	RollDices MoveType = 1
+	RollDices
 	// MovingInTheHallway action: either just exited a room or continuing in a corridor.
 	MovingInTheHallway
 	// EnterRoom action.
@@ -32,6 +34,14 @@ const (
 // Move is a marker.
 type Move interface {
 	MoveType() MoveType
+}
+
+// StartMove is a marker for the start of game record.
+type StartMove struct{}
+
+// MoveType returns Start action.
+func (start *StartMove) MoveType() MoveType {
+	return Start
 }
 
 // RollDicesMove describes dice rolling result.
@@ -109,9 +119,7 @@ func (move *NoCardToRevealMove) MoveType() MoveType {
 
 // DeclareSolutionMove describes a solution declaration.
 type DeclareSolutionMove struct {
-	Character Card
-	Room      Card
-	Weapon    Card
+	Declaration
 }
 
 // MoveType returns DeclareSolution action.
@@ -121,10 +129,10 @@ func (move *DeclareSolutionMove) MoveType() MoveType {
 
 // MoveRecord comprises of the player executing the action, the time she/he did it, which action executed, and its results.
 type MoveRecord struct {
-	PlayerID   PlayerID
-	Timestamp  time.Time
-	Move       Move
-	StateDelta StateUpdate
+	PlayerID   PlayerID    `json:"player_id"`
+	Timestamp  time.Time   `json:"timestamp"`
+	Move       Move        `json:"move,omitempty"`
+	StateDelta StateUpdate `json:"state_delta"`
 }
 
 // Declaration is a triple of cards. They must be a character card, a room card and a weapon card.
