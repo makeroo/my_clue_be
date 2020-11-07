@@ -14,7 +14,7 @@ type MoveHandler struct{}
 
 // RequestType returns Vote Start Request identifier.
 func (*MoveHandler) RequestType() data.MessageType {
-	return data.MessageVoteStartRequest
+	return data.MessageMoveRequest
 }
 
 // BodyReader parses MoveRequest json from ws.

@@ -14,7 +14,7 @@ type RevealHandler struct{}
 
 // RequestType returns Vote Start Request identifier.
 func (*RevealHandler) RequestType() data.MessageType {
-	return data.MessageVoteStartRequest
+	return data.MessageRevealRequest
 }
 
 // BodyReader parses RevealRequest json from ws.
