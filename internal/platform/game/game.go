@@ -680,7 +680,7 @@ func (game *Game) Pass() (*MoveRecord, error) {
 			},
 		}
 
-		game.history = append(game.history)
+		game.history = append(game.history, record)
 
 		return record, nil
 
@@ -708,7 +708,7 @@ func (game *Game) Pass() (*MoveRecord, error) {
 			},
 		}
 
-		game.history = append(game.history)
+		game.history = append(game.history, record)
 
 		return record, nil
 
