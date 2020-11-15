@@ -718,7 +718,7 @@ func (game *Game) Pass() (*MoveRecord, error) {
 }
 
 // CheckSolution verifies the solution.
-func (game *Game) CheckSolution(character, room, weapon Card) (*MoveRecord, error) {
+func (game *Game) CheckSolution(character, room, weapon Card) ([]*MoveRecord, error) {
 	if game.state != GameStateTrySolution {
 		return nil, IllegalState
 	}
@@ -730,45 +730,63 @@ func (game *Game) CheckSolution(character, room, weapon Card) (*MoveRecord, erro
 		Weapon:    weapon,
 	}
 
+	historyLen := len(game.history)
+
 	if game.solution == *player.declaration {
-		// player won
 		game.state = GameEnded
+
+		game.history = append(game.history, &MoveRecord{
+			PlayerID:  player.id,
+			Timestamp: time.Now(),
+			Move: &DeclareSolutionMove{
+				Declaration: *player.declaration,
+			},
+			StateDelta: StateUpdate{
+				State: game.state,
+			},
+		})
 
 	} else {
 		nextPlayer, _ := game.nextTurnPlayer()
 
 		game.currentPlayer = nextPlayer
 
+		nextPlayerID := game.players[game.currentPlayer].id
+
+		game.history = append(game.history, &MoveRecord{
+			PlayerID:  player.id,
+			Timestamp: time.Now(),
+			Move: &DeclareSolutionMove{
+				Declaration: *player.declaration,
+			},
+			StateDelta: StateUpdate{
+				State:         GameStateNewTurn,
+				CurrentPlayer: nextPlayerID,
+			},
+		})
+
 		// check if nextPlayer is the last one who has not failed to find the solution
 
 		if _, gameEnded := game.nextTurnPlayer(); gameEnded {
 			game.state = GameEnded
 
-			player = game.players[game.currentPlayer]
-
-			player.declaration = &game.solution
+			game.history = append(game.history, &MoveRecord{
+				PlayerID:  nextPlayerID,
+				Timestamp: time.Now(),
+				Move: &DeclareSolutionMove{
+					Declaration: game.solution,
+				},
+				StateDelta: StateUpdate{
+					State: game.state,
+				},
+			})
 
 		} else {
 			game.state = GameStateNewTurn
 		}
 	}
 
-	record := &MoveRecord{
-		PlayerID:  player.id,
-		Timestamp: time.Now(),
-		Move: &DeclareSolutionMove{
-			Declaration: Declaration{
-				Character: character,
-				Room:      room,
-				Weapon:    weapon,
-			},
-		},
-		StateDelta: StateUpdate{
-			State: game.state,
-		},
-	}
-
-	return record, nil
+	return game.history[historyLen:], nil
 }
 
 /*// HasWinner returns true if the game ended and it is not a draw. In this case the current player is the winner.
