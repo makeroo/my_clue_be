@@ -249,7 +249,7 @@ func (game *Game) CurrentPlayer() *Player {
 
 // AnsweringPlayer returns the anwering player if the game state is .
 func (game *Game) AnsweringPlayer() *Player {
-	if game.state == GameStateQuery {
+	if game.state != GameStateQuery {
 		return nil
 	}
 
