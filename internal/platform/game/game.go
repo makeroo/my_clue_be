@@ -618,9 +618,12 @@ func (game *Game) Reveal(card Card) (*MoveRecord, error) {
 				Card: card,
 			},
 			StateDelta: StateUpdate{
-				State:        game.state,
-				Revealed:     game.revealed,
-				RevealedCard: game.revealedCard,
+				// current player did not change but I need it to decide
+				// if send revealed card or not (only answering and current player see the revealed card)
+				CurrentPlayer: game.CurrentPlayer().id,
+				State:         game.state,
+				Revealed:      game.revealed,
+				RevealedCard:  game.revealedCard,
 			},
 		}
 
@@ -637,10 +640,17 @@ func (game *Game) Reveal(card Card) (*MoveRecord, error) {
 
 	game.answeringPlayer = game.NextAnsweringPlayer(game.answeringPlayer)
 
+	var nextAnsweringPlayerID PlayerID
+
 	if game.answeringPlayer == game.currentPlayer {
 		game.revealed = false
 		game.revealedCard = NoCard
 		game.state = GameStateTrySolution
+
+		nextAnsweringPlayerID = 0
+
+	} else {
+		nextAnsweringPlayerID = game.AnsweringPlayer().id
 	}
 
 	record := &MoveRecord{
@@ -648,9 +658,10 @@ func (game *Game) Reveal(card Card) (*MoveRecord, error) {
 		Timestamp: time.Now(),
 		Move:      &NoCardToRevealMove{},
 		StateDelta: StateUpdate{
-			State:        game.state,
-			Revealed:     game.revealed,
-			RevealedCard: game.revealedCard,
+			State:           game.state,
+			AnsweringPlayer: nextAnsweringPlayerID,
+			Revealed:        game.revealed,
+			RevealedCard:    game.revealedCard,
 		},
 	}
 

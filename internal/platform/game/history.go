@@ -100,7 +100,7 @@ func (move *PassMove) MoveType() MoveType {
 
 // RevealCardMove describes the card the answering player shows to the querying one.
 type RevealCardMove struct {
-	Card Card
+	Card Card `json:"card,omitempty"`
 }
 
 // MoveType returns RevealCard action.
@@ -184,7 +184,7 @@ type StateUpdate struct {
 
 // AsMessageFor return a record containing only the informations visible by the specified player.
 func (record MoveRecord) AsMessageFor(player *Player) MoveRecord {
-	if record.PlayerID == player.id {
+	if player.id == record.PlayerID || player.id == record.StateDelta.CurrentPlayer {
 		return record
 	}
 
@@ -199,6 +199,7 @@ func (record MoveRecord) AsMessageFor(player *Player) MoveRecord {
 	// otherwise revealed card is not visible to the other players
 	r := record
 
+	r.Move = &RevealCardMove{}
 	r.StateDelta.RevealedCard = NoCard
 
 	return r

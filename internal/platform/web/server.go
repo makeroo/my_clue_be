@@ -619,7 +619,7 @@ func (server *Server) CompleteJoin(userIO *UserIO) {
 				Header: data.MessageHeader{
 					Type: data.MessageNotifyMoveRecord,
 				},
-				Body: record,
+				Body: record.AsMessageFor(userIO.player),
 			}
 		})
 	}
