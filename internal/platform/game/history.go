@@ -46,8 +46,8 @@ func (start *StartMove) MoveType() MoveType {
 
 // RollDicesMove describes dice rolling result.
 type RollDicesMove struct {
-	Dice1 int
-	Dice2 int
+	Dice1 int `json:"dice1"`
+	Dice2 int `json:"dice2"`
 }
 
 // MoveType returns RollDices action.
@@ -57,8 +57,8 @@ func (move *RollDicesMove) MoveType() MoveType {
 
 // MovingInTheHallwayMove describes a pawn move in a corridor.
 type MovingInTheHallwayMove struct {
-	MapX int
-	MapY int
+	MapX int `json:"map_x"`
+	MapY int `json:"map_y"`
 }
 
 // MoveType returns MovingInTheHallway action.
@@ -68,7 +68,7 @@ func (move *MovingInTheHallwayMove) MoveType() MoveType {
 
 // EnterRoomMove describes a player entering a room or remaining in the same room she/he was in.
 type EnterRoomMove struct {
-	Room Card
+	Room Card `json:"room"`
 }
 
 // MoveType returns EnterRoom.
@@ -80,8 +80,8 @@ func (move *EnterRoomMove) MoveType() MoveType {
 // Because a player can investigate only if she/he is in a room and can investigate that room only
 // room is implicit and not specified in the action.
 type QuerySolutionMove struct {
-	Character Card
-	Weapon    Card
+	Character Card `json:"character"`
+	Weapon    Card `json:"weapon"`
 }
 
 // MoveType eturns QuerySolution action.
