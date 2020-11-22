@@ -527,11 +527,16 @@ func (game *Game) QuerySolution(character, weapon Card) (*MoveRecord, error) {
 		return nil, NotInARoom
 	}
 
-	game.query = Declaration{
+	// I need a copy to be referred by MoveRecord
+	// taking &game.query is not an option, history would be modified
+
+	query := Declaration{
 		Character: character,
 		Weapon:    weapon,
 		Room:      room,
 	}
+
+	game.query = query
 	game.answeringPlayer = game.NextAnsweringPlayer(game.currentPlayer)
 
 	var moves []PlayerPosition
@@ -564,7 +569,7 @@ func (game *Game) QuerySolution(character, weapon Card) (*MoveRecord, error) {
 			State:     game.state,
 			Positions: moves,
 
-			Query: &game.query,
+			Query: &query,
 
 			AnsweringPlayer: game.players[game.answeringPlayer].id,
 		},
